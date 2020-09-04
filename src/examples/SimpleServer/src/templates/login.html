@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <style>
+    .status {
+      display: none;
+      border: 1px solid red;
+      padding: 10px;
+      width: 350px;
+      margin-bottom: 10px;
+    }
+  </style>
+  <head>
+    <title>Demo web application</title>
+  </head>
+  <body>
+    <div id="status" class="status"></div>
+    <div>
+      Please login
+      <table>
+        <tr>
+          <td>
+            <input type="text" id="email" placeholder="Email">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <input type="password" id="password" placeholder="Password">
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <button onClick="onSubmit();">Ok</button>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <script type="text/javascript">
+      function onSubmit() {
+        var statusBox = document.getElementById("status");
+        statusBox.style.display = "none";
+
+        var email = document.getElementById("email").value;
+        var password = document.getElementById("password").value;
+        var httpStatus = 200;
+
+        var request = new Request(
+          '/login',
+          {
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            method: 'POST',
+            body: JSON.stringify({
+              email,
+              password,
+            })
+          }
+        );
+
+        fetch(request)
+        .then(response => {
+          httpStatus = response.status;
+          return response.json();
+        })
+        .then(response => {
+          if (httpStatus !== 200) {
+            statusBox.style.display = "block";
+            statusBox.innerText = response.message;
+          } else {
+            window.sessionStorage.setItem('session', JSON.stringify(response));
+            window.location = '/app';
+          }
+        })
+      }
+    </script>
+  </body>
+</html>

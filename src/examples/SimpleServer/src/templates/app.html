@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Demo web application</title>
+  </head>
+  <body>
+    <div>
+      Welcome to the app, here's your information:
+    </div>
+    <div id="userInfo">
+    </div>
+    <div id="hobbies">
+    </div>
+    <div id="hobby">
+    </div>
+    <script type="text/javascript">
+      (
+        () => {
+          var session = window.sessionStorage.getItem('session');
+          if (session === null) {
+            // Redirect the client to the login page
+            window.location = "/login";
+            return;
+          }
+          session = JSON.parse(session);
+          var authToken = session.token;
+          var standardHeaders = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken,
+          };
+
+          var requestHobbyInfo = hobbyId => {
+            return () => {
+              // Request hobby info by id
+              var request = new Request(
+                '/api/hobby/' + hobbyId,
+                {
+                  headers: standardHeaders,
+                  method: 'GET',
+                }
+              );
+
+              fetch(request)
+              .then(response => {
+                return response.json();
+              })
+              .then(response => {
+                var hobbyDiv = document.getElementById('hobby');
+                hobbyDiv.innerHTML = (
+                  "<br/><div>Viewing hobby</div><br/>Name: " + response.name + "<br/>" +
+                  "Description: " + response.description + "<br/>" +
+                  "Barrier to entry: " + response.barrierToEntry
+                );
+              });
+            }
+          }
+
+          var deleteHobby = hobbyId => {
+            return () => {
+              // Deletes a hobby by id
+              var request = new Request(
+                '/api/hobby/' + hobbyId,
+                {
+                  headers: standardHeaders,
+                  method: 'DELETE',
+                }
+              );
+
+              fetch(request)
+              .then(response => {
+                // Reload the hobbies
+                requestHobbies();
+              });
+            }
+          }
+
+          var requestUserInfo = () => {
+            // Request user info (even though we have it in the session) to exercise the auth token
+            // code on the server
+            var request = new Request(
+              '/api/user',
+              {
+                headers: standardHeaders,
+                method: 'GET',
+              }
+            );
+
+            fetch(request)
+            .then(response => {
+              httpStatus = response.status;
+              return response.json();
+            })
+            .then(response => {
+              if (httpStatus !== 200) {
+                window.location = '/login';
+              } else {
+                var userInfo = document.getElementById('userInfo');
+                userInfo.innerHTML = (
+                  '<br/>' +
+                  "First name: " + response.firstName + '<br/>' +
+                  "Last name: " + response.lastName
+                );
+              }
+            });
+          }
+
+          var requestHobbies = () => {
+            // Request available hobbies
+            var request = new Request(
+              '/api/hobby',
+              {
+                headers: standardHeaders,
+                method: 'GET',
+              }
+            );
+
+            fetch(request)
+            .then(response => {
+              return response.json();
+            })
+            .then(response => {
+              var hobbies = document.getElementById('hobbies');
+              hobbies.innerHTML = '';
+              hobbies.appendChild(document.createElement("br"));
+              hobbies.appendChild(document.createTextNode("Hobbies"));
+              var table = document.createElement('table');
+              table.style.border = "1px solid black";
+              var tbody = document.createElement('tbody');
+              response.forEach(function(hobby) {
+                console.log(hobby)
+                var row = document.createElement('tr');
+
+                var col = document.createElement('td');
+                col.appendChild(document.createTextNode(hobby.name));
+                row.appendChild(col);
+                col = document.createElement('td');
+                var button = document.createElement('button');
+                button.innerHTML = 'View';
+                button.onclick = requestHobbyInfo(hobby.id);
+                col.appendChild(button);
+                row.appendChild(col);
+
+                col = document.createElement('td');
+                button = document.createElement('button');
+                button.innerHTML = 'Delete';
+                button.onclick = deleteHobby(hobby.id);
+                col.appendChild(button);
+                row.appendChild(col);
+
+                tbody.appendChild(row);
+              });
+
+              table.appendChild(tbody);
+              hobbies.appendChild(table);
+            });
+          }
+
+          requestUserInfo();
+          requestHobbies();
+        }
+      )();
+    </script>
+  </body>
+</html>
