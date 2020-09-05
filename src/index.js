@@ -11,6 +11,7 @@ module.exports = {
   RedirectResponse: require('./responseTypes/RedirectResponse'),
   ResponseObject: require('./responseTypes/ResponseObject'),
   Accessor: require('./accessors/Accessor'),
+  ArrayAccessor: require('./accessors/ArrayAccessor'),
   EmailAccessor: require('./accessors/EmailAccessor'),
   IntAccessor: require('./accessors/IntAccessor'),
   NumericAccessor: require('./accessors/NumericAccessor'),

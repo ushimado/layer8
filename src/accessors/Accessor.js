@@ -1,15 +1,24 @@
 const ValidationError = require('../errors/ValidationError');
+const assert = require('assert');
 
 class Accessor {
 
   constructor(key, isRequired=true, defaultValue=undefined) {
     this.keyName = key;
-    this.keyParts = key.split('.');
+
+    if (this.keyName !== null) {
+      this.keyParts = key.split('.');
+    } else {
+      this.keyParts = null;
+    }
+
     this.isRequired = isRequired;
     this.defaultValue = defaultValue;
   }
 
   read(body) {
+    assert(this.keyName !== null);
+
     let currentObj = body;
     for (let keyPart of this.keyParts) {
       if (!currentObj.hasOwnProperty(keyPart)) {
@@ -27,6 +36,8 @@ class Accessor {
   }
 
   write(value, body=null) {
+    assert(this.keyName !== null);
+
     let target = body;
     if (body === null) {
       target = {};
@@ -47,7 +58,11 @@ class Accessor {
   }
 
   validate(body) {
-    const rawValue = this.read(body);
+    let rawValue;
+    if (this.keyName !== null)
+      rawValue = this.read(body);
+    else
+      rawValue = body;
 
     if (rawValue === undefined && this.isRequired === true) {
       throw new ValidationError(
