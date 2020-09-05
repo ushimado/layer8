@@ -380,5 +380,32 @@ Layer8 implements a few subclasses of the `ResponseObject` in order to generate 
 
 All of the above subclasses of the `ResponseObject` can be passed headers and cookies to set on the response.  See each individual class for constructor specifics.
 
+## Headers and cookies
+Request headers and cookies are available on the Koa context object, please consult the Koa documentation for their use.  Setting response headers and cookies are carried out through the `ResponseObject`.  Headers are set by passing a javascript object (key value pairs) to the respective `ResponseObject` subclass's constructor method.  Cookies are set by passing an array of one or more `Cookie` objects to the `ResponseObject`.  Below illustrates through example, how this would be accomplished with a `JSONResponse` object.
+
+```
+  const {
+    Cookie,
+    JSONResponse
+  } = require('layer8');
+
+  const myResponse = new JSONResponse(
+    {                                         // The response body
+      message: 'hello world'
+    },
+    {                                         // Response headers
+      'User-Agent', 'my cool client',
+    },
+    [                                         // Response cookies
+      new Cookie(
+        'session',
+        'some serialized data',
+        new Date(new Date().getTime + (1000 * 60 * 60 * 24)),
+        'mydomain.com',
+      )
+    ],
+  )
+```
+
 ## Helper utilities
 Layer8 comes with one basic set of helper utilities used to facilitate authentication and secure password storage.  These are the `HashUtils`.  See both the [SessionService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/SessionService.js) and [UserService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/UserService.js) in the example application for examples on using the `HashUtils` for password hash and salting as well as verification, and session token creation.
