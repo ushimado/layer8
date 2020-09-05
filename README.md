@@ -238,6 +238,7 @@ Subclasses of the `Accessor` object perform data translation and validation.  Th
 
 The following accessors are provided by Layer8
 
+- ArrayAccessor - used to validate an array of data
 - EmailAccessor - used to validate email addresses
 - IntAccessor - used to validate integers
 - NumericAccessor - used to validate any numeric data
@@ -314,6 +315,8 @@ In which case the object would be recursively traversed until the data is acquir
   }
 ```
 
+It is important to note, that an `Accessor` instantiated with a `null` key will attempt to validate the object directly when `validate` is invoked, rather than attempting to look up the value on a target object.  This is useful when using accessors to evaluate arrays of items, etc., where object lookup is not necessary.
+
 ## Authenticators
 Layer8 provides some authentication mechanisms, in addition to some utility classes to aid in the process of authentication.  The authentication class provided out of the box is:
 - TokenAuthenticator - Used to authenticate an authorization token on each access restricted request
@@ -364,3 +367,18 @@ module.exports = MyTokenAuthenticator;
 In the above example, there are a couple of things going on.  One, we've implemented `MyTokenAuthenticator` as a singleton.  This way, the same instance can be reused on each request.  We can also simply pass `MyTokenAuthenticator.use` as a middleware, to any endpoint / controller which requires authentication.
 
 `TokenAuthenticator` expects a bearer token located in the `Authorization` header.  Typically the client will provide this token after initial authentication of the user's credentials have taken place and a token is created.
+
+## Response objects
+Each execution method of a controller should return a `ResponseObject`.  A `ResponseObject` is used to format and return data to the client, passing necessary headers to indicate content type, etc.  A controller method that does not return a `ResponseObject` will return an empty body.  This is acceptable when there is simply no data to return.
+
+Layer8 implements a few subclasses of the `ResponseObject` in order to generate some of the common response types.
+
+- `ResponseObject` - A text/html response for rendering pages, etc
+- `JSONResponse` - Used to return JSON data to the client
+- `RedirectResponse` - Issues a redirect to the client
+- `ErrorResponse` - Indicates an error and takes the form of a JSON payload
+
+All of the above subclasses of the `ResponseObject` can be passed headers and cookies to set on the response.  See each individual class for constructor specifics.
+
+## Helper utilities
+Layer8 comes with one basic set of helper utilities used to facilitate authentication and secure password storage.  These are the `HashUtils`.  See both the [SessionService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/SessionService.js) and [UserService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/UserService.js) in the example application for examples on using the `HashUtils` for password hash and salting as well as verification, and session token creation.

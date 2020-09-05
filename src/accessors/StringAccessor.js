@@ -1,6 +1,12 @@
 const Accessor = require('./Accessor');
 const ValidationError = require('../errors/ValidationError');
 
+/**
+ * Validates / retrieves a string
+ *
+ * @class StringAccessor
+ * @extends {Accessor}
+ */
 class StringAccessor extends Accessor {
 
   constructor(key, isRequired=true, defaultValue=undefined, minLength=0, maxLength=null) {

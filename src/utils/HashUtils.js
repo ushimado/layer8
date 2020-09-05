@@ -47,7 +47,7 @@ class HashUtils {
    * 2 * nBytes characters long.
    *
    * @static
-   * @param {*} nBytes - Number of bytes of random data in the token.
+   * @param {number} nBytes - Number of bytes of random data in the token.
    * @memberof HashUtils
    */
   static generateRandomToken(nBytes) {

@@ -1,5 +1,14 @@
 class Endpoint {
 
+  /**
+   * Creates an instance of Endpoint.
+   *
+   * @param {string} relativePath - Path relative to the controller's path
+   * @param {string} method - One of Endpoint.METHODS
+   * @param {Array|null} [middlewares=null] - An array of middlewares to apply to the endpoint,
+   * or null if no middlewares
+   * @memberof Endpoint
+   */
   constructor(relativePath, method, middlewares=null) {
     this.relativePath = relativePath;
     this.method = method;

@@ -1,6 +1,14 @@
 const Accessor = require('./Accessor');
 const ValidationError = require('../errors/ValidationError');
 
+/**
+ * Validates / retrieves an entity ID, allowing for string representations of numeric IDs to be
+ * converted to integers.  Following database serials, entity IDs are assumed to start from one
+ * and be positive integers.
+ *
+ * @class PathEntityIDAccessor
+ * @extends {Accessor}
+ */
 class PathEntityIDAccessor extends Accessor {
 
   constructor(key, isRequired=true, defaultValue=undefined) {

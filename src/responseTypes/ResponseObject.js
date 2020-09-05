@@ -2,6 +2,17 @@ const assert = require('assert');
 const HTTPStatusCodes = require('../HTTPStatusCodes');
 
 class ResponseObject {
+
+  /**
+   *
+   * Creates an instance of ResponseObject.
+   *
+   * @param {string} body - Response body
+   * @param {object|null} [headers=null] - Optional headers
+   * @param {object|null} [cookies=null] - Optional cookies
+   * @param {number} [statusCode=HTTPStatusCodes.OK] - HTTP status code
+   * @memberof ResponseObject
+   */
   constructor(body, headers=null, cookies=null, statusCode=HTTPStatusCodes.OK) {
     this.body = body;
     this.headers = headers;

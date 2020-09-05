@@ -21,6 +21,7 @@ class Server {
    * @param {function} onExecutionFailure - Asynchronous method to be executed if the REST method
    * throws an exception. (Optional)
    * @param {Array} middlewares - An array of middlewares to use at the server level. (Optional)
+   * @param {boolean} verbose - If true, verbose output is enabled
    * @memberof Server
    */
   constructor(
@@ -43,7 +44,7 @@ class Server {
     });
 
     if (this.verbose === true) {
-      console.debug("Establishing endpoints")
+      console.debug("Creating routings")
     }
 
     controllers.forEach(controller => {
@@ -205,6 +206,15 @@ class Server {
     })
   }
 
+  /**
+   * Sets error response on the context
+   *
+   * @param {*} ctx - Koa context
+   * @param {number} statusCode - HTTP status code
+   * @param {string} type - Error code / class
+   * @param {string} message - Error message
+   * @memberof Server
+   */
   _createErrorResponse(ctx, statusCode, type, message) {
     ctx.status = statusCode;
     ctx.set('Content-Type', 'application/json');

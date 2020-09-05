@@ -1,6 +1,12 @@
 const IntAccessor = require('./IntAccessor');
 const ValidationError = require('../errors/ValidationError');
 
+/**
+ * Validates / retrieves a positive integer (where 0 is optionally valid)
+ *
+ * @class PositiveIntAccessor
+ * @extends {IntAccessor}
+ */
 class PositiveIntAccessor extends IntAccessor {
 
   constructor(key, isRequired=true, defaultValue=undefined, allowZero=false) {

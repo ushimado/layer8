@@ -1,6 +1,12 @@
 const StringAccessor = require('./StringAccessor');
 const ValidationError = require('../errors/ValidationError');
 
+/**
+ * Validates / retrieves an email address
+ *
+ * @class EmailAccessor
+ * @extends {StringAccessor}
+ */
 class EmailAccessor extends StringAccessor {
 
   constructor(key, isRequired=true, defaultValue=undefined) {

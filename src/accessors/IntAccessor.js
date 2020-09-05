@@ -1,6 +1,12 @@
 const Accessor = require('./Accessor');
 const ValidationError = require('../errors/ValidationError');
 
+/**
+ * Validates / retrieves an integer
+ *
+ * @class IntAccessor
+ * @extends {Accessor}
+ */
 class IntAccessor extends Accessor {
 
   validate(body) {

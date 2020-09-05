@@ -1,6 +1,12 @@
 const NumericAccessor = require('./NumericAccessor');
 const ValidationError = require('../errors/ValidationError');
 
+/**
+ * Validates / retrieves a positive number (can be floating point or integer)
+ *
+ * @class PositiveNumericAccessor
+ * @extends {NumericAccessor}
+ */
 class PositiveNumericAccessor extends NumericAccessor {
 
   constructor(key, isRequired=true, defaultValue=undefined, allowZero=true) {
