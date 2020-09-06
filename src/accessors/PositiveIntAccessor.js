@@ -23,6 +23,8 @@ class PositiveIntAccessor extends IntAccessor {
       );
     }
 
+    this._validateRange(rawValue);
+
     return rawValue;
   }
 

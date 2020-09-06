@@ -13,6 +13,7 @@ module.exports = {
   Accessor: require('./accessors/Accessor'),
   ArrayAccessor: require('./accessors/ArrayAccessor'),
   EmailAccessor: require('./accessors/EmailAccessor'),
+  EnumAccessor: require('./accessors/EnumAccessor'),
   IntAccessor: require('./accessors/IntAccessor'),
   NumericAccessor: require('./accessors/NumericAccessor'),
   PositiveIntAccessor: require('./accessors/PositiveIntAccessor'),

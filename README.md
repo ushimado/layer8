@@ -240,6 +240,7 @@ The following accessors are provided by Layer8
 
 - ArrayAccessor - used to validate an array of data
 - EmailAccessor - used to validate email addresses
+- EnumAccessor - used to validate an item as a member of a known collection of items
 - IntAccessor - used to validate integers
 - NumericAccessor - used to validate any numeric data
 - PathEntityIDAccessor - used to validate entity IDs which may be represented as strings, as part of the URL path, etc.
@@ -255,10 +256,10 @@ The [SignupAccessor](https://github.com/hashibuto/layer8/blob/master/src/example
 
 In the example:
 ```
-SignupAccessors.FIRST_NAME = new StringAccessor('first_name', true, undefined, 1, 50);
-SignupAccessors.LAST_NAME = new StringAccessor('last_name', true, undefined, 1, 50);
+SignupAccessors.FIRST_NAME = new StringAccessor('first_name').range(1, 50);
+SignupAccessors.LAST_NAME = new StringAccessor('last_name').range(1, 50);
 SignupAccessors.EMAIL = new EmailAccessor('email');
-SignupAccessors.PASSWORD = new StringAccessor('password', true, undefined, 8, 200);
+SignupAccessors.PASSWORD = new StringAccessor('password').range(8, 200);
 ```
 
 We can see that 4 simple accessors are instantiated and will be reused by the controller on each request.  The accessors define the attribute where the data can be found on the target object, using a dot delimited notation, as well as other key information such as whether or not the data is required, any default value, or any length constraints, etc.  You will have to review the specific arguments of each type of accessor in order to determine its specific use.

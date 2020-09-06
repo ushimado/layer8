@@ -23,6 +23,8 @@ class PositiveNumericAccessor extends NumericAccessor {
       );
     }
 
+    this._validateRange(rawValue);
+
     return rawValue;
   }
 

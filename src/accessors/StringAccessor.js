@@ -9,11 +9,18 @@ const ValidationError = require('../errors/ValidationError');
  */
 class StringAccessor extends Accessor {
 
-  constructor(key, isRequired=true, defaultValue=undefined, minLength=0, maxLength=null) {
-    super(key, isRequired, defaultValue);
-
+  /**
+   * Sets the length range for valid strings.
+   *
+   * @param {number} minLength
+   * @param number} maxLength
+   * @memberof StringAccessor
+   */
+  range(minLength=undefined, maxLength=undefined) {
     this.minLength = minLength;
     this.maxLength = maxLength;
+
+    return this;
   }
 
   validate(body) {
@@ -25,17 +32,17 @@ class StringAccessor extends Accessor {
         `The value${this.keyPositionStr()}is not a string`);
     }
 
-    if (rawValue.length < this.minLength) {
+    if (this.minLength !== undefined && rawValue < this.minLength) {
       throw new ValidationError(
         this.keyName,
         `The string${this.keyPositionStr()}must be at least ${this.minLength} characters long`
       );
     }
 
-    if (this.maxLength !== null && rawValue.length > this.maxLength) {
+    if (this.maxLength !== undefined && rawValue.length > this.maxLength) {
       throw new ValidationError(
         this.keyName,
-        `The string${this.keyPositionStr()}exceeds the maximum length of ${this.minLength} characters`
+        `The string${this.keyPositionStr()}exceeds the maximum length of ${this.maxLength} characters`
       );
     }
 

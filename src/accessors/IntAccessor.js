@@ -1,13 +1,13 @@
-const Accessor = require('./Accessor');
+const NumericAccessor = require('./NumericAccessor');
 const ValidationError = require('../errors/ValidationError');
 
 /**
  * Validates / retrieves an integer
  *
  * @class IntAccessor
- * @extends {Accessor}
+ * @extends {NumericAccessor}
  */
-class IntAccessor extends Accessor {
+class IntAccessor extends NumericAccessor {
 
   validate(body) {
     const rawValue = super.validate(body);
@@ -19,8 +19,10 @@ class IntAccessor extends Accessor {
       throw new ValidationError(
         this.keyName,
         `The value${this.keyPositionStr()}is not an integer`,
-      )
+      );
     }
+
+    this._validateRange(rawValue);
 
     return rawValue;
   }
