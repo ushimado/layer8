@@ -18,7 +18,7 @@ class IntAccessor extends Accessor {
     ) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not an integer`,
+        `The value${this.keyPositionStr()}is not an integer`,
       )
     }
 

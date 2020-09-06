@@ -22,20 +22,20 @@ class StringAccessor extends Accessor {
     if (rawValue === undefined || rawValue !== rawValue.toString()) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not a string`);
+        `The value${this.keyPositionStr()}is not a string`);
     }
 
     if (rawValue.length < this.minLength) {
       throw new ValidationError(
         this.keyName,
-        `The string at "${this.keyName}" must be at least ${this.minLength} characters long`
+        `The string${this.keyPositionStr()}must be at least ${this.minLength} characters long`
       );
     }
 
     if (this.maxLength !== null && rawValue.length > this.maxLength) {
       throw new ValidationError(
         this.keyName,
-        `The string at "${this.keyName}" exceeds the maximum length of ${this.minLength} characters`
+        `The string${this.keyPositionStr()}exceeds the maximum length of ${this.minLength} characters`
       );
     }
 

@@ -19,7 +19,7 @@ class PositiveNumericAccessor extends NumericAccessor {
     if (rawValue < (this.allowZero ? 1 : 0)) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not a positive number`
+        `The value${this.keyPositionStr()}is not a positive number`
       );
     }
 

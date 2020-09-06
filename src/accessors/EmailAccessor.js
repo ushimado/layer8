@@ -19,7 +19,7 @@ class EmailAccessor extends StringAccessor {
     if (!EmailAccessor.RE_EMAIL_ADDRESS.test(rawValue)) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not a valid email address`,
+        `The value${this.keyPositionStr()}is not a valid email address`,
       );
     }
 

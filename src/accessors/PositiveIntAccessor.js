@@ -19,7 +19,7 @@ class PositiveIntAccessor extends IntAccessor {
     if (rawValue < (this.allowZero ? 1 : 0)) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not a positive integer`
+        `The value${this.keyPositionStr()}is not a positive integer`
       );
     }
 

@@ -20,7 +20,7 @@ class PathEntityIDAccessor extends Accessor {
     if (typeof rawValue !== "string") {
       throw new ValidationError(
         this.keyName,
-        `Path entity ID at "${this.keyName}" must be a string representation of a numeric value`,
+        `Path entity ID${this.keyPositionStr()}must be a string representation of a numeric value`,
       );
     }
 
@@ -28,14 +28,14 @@ class PathEntityIDAccessor extends Accessor {
     if (isNaN(rawValue)) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not an integer`,
+        `The value${this.keyPositionStr()}is not an integer`,
       );
     }
 
     if (rawValue < 1) {
       throw new ValidationError(
         this.keyName,
-        `Entity ID at "${this.keyName}" must be > 0`,
+        `Entity ID${this.keyPositionStr()}must be > 0`,
       )
     }
 

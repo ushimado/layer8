@@ -18,7 +18,7 @@ class NumericAccessor extends Accessor {
     ) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not numeric`,
+        `The value${this.keyPositionStr()}is not numeric`,
       )
     }
 

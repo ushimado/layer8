@@ -28,7 +28,7 @@ class ArrayAccessor extends Accessor {
     if (!Array.isArray(rawValue)) {
       throw new ValidationError(
         this.keyName,
-        `The value at "${this.keyName}" is not an array`,
+        `The value${this.keyPositionStr()}is not an array`,
       )
     }
 

@@ -74,6 +74,14 @@ class Accessor {
     return rawValue;
   }
 
+  keyPositionStr() {
+    if (this.keyName === null) {
+      return ' ';
+    }
+
+    return ` at "${this.keyName} "`
+  }
+
   static validateAll(body, accessors) {
     const validated = [];
     accessors.forEach(accessor => {
