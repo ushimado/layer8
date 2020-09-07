@@ -243,6 +243,7 @@ The following accessors are provided by Layer8
 - EnumAccessor - used to validate an item as a member of a known collection of items
 - IntAccessor - used to validate integers
 - NumericAccessor - used to validate any numeric data
+- PasswordAccessor - used to validate passwords with varying complexity
 - PathEntityIDAccessor - used to validate entity IDs which may be represented as strings, as part of the URL path, etc.
 - PositiveIntAccessor - used to validate positive integers
 - PositiveNumericAccessor - used to validate positive numeric values

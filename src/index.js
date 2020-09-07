@@ -16,6 +16,7 @@ module.exports = {
   EnumAccessor: require('./accessors/EnumAccessor'),
   IntAccessor: require('./accessors/IntAccessor'),
   NumericAccessor: require('./accessors/NumericAccessor'),
+  PasswordAccessor: require('./accessors/PasswordAccessor'),
   PositiveIntAccessor: require('./accessors/PositiveIntAccessor'),
   PositiveNumericAccessor: require('./accessors/PositiveNumericAccessor'),
   StringAccessor: require('./accessors/StringAccessor'),

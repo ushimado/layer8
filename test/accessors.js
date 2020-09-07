@@ -7,6 +7,7 @@ const NumericAccessor = require('../src/accessors/NumericAccessor');
 const PathEntityIDAccessor = require('../src/accessors/PathEntityIDAccessor');
 const PositiveIntAccessor = require('../src/accessors/PositiveIntAccessor');
 const PositiveNumericAccessor = require('../src/accessors/PositiveNumericAccessor');
+const PasswordAccessor = require('../src/accessors/PasswordAccessor');
 const assert = require('assert');
 
 const mostlyStringArray = ['abc', 'def', 8, 'ghi'];
@@ -185,5 +186,27 @@ describe("Test positive numeric accessor", () => {
 
   it('Should accept zero values by default', () => {
     positiveNumericAccessor.validate(1.4);
+  });
+})
+
+describe("Test password accessor", () => {
+  const passwordAccessor = (
+    new PasswordAccessor(null)
+    .mustContain(PasswordAccessor.CAPITAL_LETTERS, 3)
+    .mustContain(PasswordAccessor.LOWERCASE_LETTERS, 3)
+    .mustContain(PasswordAccessor.SPECIAL_CHARACTERS, 3)
+    .mustContain(PasswordAccessor.NUMBERS, 3)
+  );
+
+  it("Should fail if any of the requirements aren't met", () => {
+    validate(passwordAccessor, "simplepassword");
+  });
+
+  it("Should not fail if all of the requirements aren't met", () => {
+    passwordAccessor.validate('123abcDEF.,#$');
+  });
+
+  it("Should fail if a singel requirement isn't met", () => {
+    validate(passwordAccessor, '123abcDEF.,');
   });
 })

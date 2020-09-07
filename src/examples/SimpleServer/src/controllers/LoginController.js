@@ -83,7 +83,7 @@ class LoginController extends Controller {
               'application',
               'Example Layer8 app',
               new Date(new Date().getTime() + (1000 * 60 * 60)),
-              'localhost',
+              'lh.test.com',    // For this to work, add 127.0.0.1 alias to /etc/hosts
             )
           ]
         );
