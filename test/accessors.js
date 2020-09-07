@@ -206,7 +206,7 @@ describe("Test password accessor", () => {
     passwordAccessor.validate('123abcDEF.,#$');
   });
 
-  it("Should fail if a singel requirement isn't met", () => {
+  it("Should fail if a single requirement isn't met", () => {
     validate(passwordAccessor, '123abcDEF.,');
   });
 })
