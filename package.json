@@ -8,6 +8,14 @@
   },
   "author": "Philip Stefou",
   "license": "ISC",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hashibuto/layer8.git"
+  },
+  "homepage": "https://github.com/hashibuto/layer8#readme",
   "dependencies": {
     "koa": "^2.12.1",
     "koa-router": "^9.0.1"
