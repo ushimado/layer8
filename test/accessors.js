@@ -30,6 +30,33 @@ const validate = (accessor, body) => {
   }
 }
 
+describe("Test string accessor", () => {
+  it('Should fail when a minimum length constraint is present', () => {
+    const stringAccessor = new StringAccessor(null).range(2);
+    validate(stringAccessor, 'h');
+  });
+
+  it('Should fail when a minimum length constraint is present', () => {
+    const stringAccessor = new StringAccessor(null).range(2);
+    validate(stringAccessor, 'h');
+  });
+
+  it('Should fail when spaces are present if specified', () => {
+    const stringAccessor = new StringAccessor(null).noSpaces();
+    validate(stringAccessor, 'hello ');
+  });
+
+  it('Should not fail when spaces are present on edge if specified with trim', () => {
+    const stringAccessor = new StringAccessor(null).noSpaces().trim();
+    stringAccessor.validate(' hello ');
+  });
+
+  it('Should fail when spaces are present if specified in middle with trim', () => {
+    const stringAccessor = new StringAccessor(null).noSpaces().trim();
+    validate(stringAccessor, ' he llo ');
+  });
+})
+
 describe("Test array accessor", () => {
   it('Should fail due to presence of int', () => {
     const arrayAccessor = new ArrayAccessor('mostlyStringArray', new StringAccessor(null), true);

@@ -16,15 +16,38 @@ class StringAccessor extends Accessor {
    * @param number} maxLength
    * @memberof StringAccessor
    */
-  range(minLength=undefined, maxLength=undefined) {
+  range(minLength = undefined, maxLength = undefined) {
     this.minLength = minLength;
     this.maxLength = maxLength;
 
     return this;
   }
 
+  /**
+   * Trims input prior to length validation.  Returned output will be trimmed.
+   *
+   * @memberof StringAccessor
+   */
+  trim() {
+    this.trimInput = true;
+
+    return this;
+  }
+
+  /**
+   * Throws ValidationError on validate if spaces are present in the input.  If used in conjunction
+   * with trim, only spaces in between non-space characters will cause validate to throw.
+   *
+   * @memberof StringAccessor
+   */
+  noSpaces() {
+    this.noSpaces = true;
+
+    return this;
+  }
+
   validate(body) {
-    const rawValue = super.validate(body);
+    let rawValue = super.validate(body);
 
     if (rawValue === undefined || rawValue !== rawValue.toString()) {
       throw new ValidationError(
@@ -32,7 +55,11 @@ class StringAccessor extends Accessor {
         `The value${this.keyPositionStr()}is not a string`);
     }
 
-    if (this.minLength !== undefined && rawValue < this.minLength) {
+    if (this.trimInput === true) {
+      rawValue = rawValue.trim();
+    }
+
+    if (this.minLength !== undefined && rawValue.length < this.minLength) {
       throw new ValidationError(
         this.keyName,
         `The string${this.keyPositionStr()}must be at least ${this.minLength} characters long`
@@ -43,6 +70,13 @@ class StringAccessor extends Accessor {
       throw new ValidationError(
         this.keyName,
         `The string${this.keyPositionStr()}exceeds the maximum length of ${this.maxLength} characters`
+      );
+    }
+
+    if (this.noSpaces === true && rawValue.includes(' ')) {
+      throw new ValidationError(
+        this.keyName,
+        `The string${this.keyPositionStr()}must not contain any spaces`
       );
     }
 
