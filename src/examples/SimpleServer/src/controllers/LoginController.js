@@ -7,6 +7,7 @@ const {
   HashUtils,
   HTTPStatusCodes,
   JSONResponse,
+  Cookie,
 } = require('layer8');
 const body = require('koa-body');
 const LoginAccessors = require('../api/LoginAccessors');
@@ -74,8 +75,18 @@ class LoginController extends Controller {
         };
         delete strippedSession.user.salt;
         delete strippedSession.user.saltedHash;
-
-        return new JSONResponse(strippedSession);
+        return new JSONResponse(
+          strippedSession,
+          null,
+          [
+            new Cookie(
+              'application',
+              'Example Layer8 app',
+              new Date(new Date().getTime() + (1000 * 60 * 60)),
+              'localhost',
+            )
+          ]
+        );
       }
     }
 

@@ -22,5 +22,6 @@ module.exports = {
   PathEntityIDAccessor: require('./accessors/PathEntityIDAccessor'),
   HashUtils: require('./utils/HashUtils'),
   HTTPStatusCodes: require('./HTTPStatusCodes'),
+  Cookie: require('./Cookie'),
 }
 
