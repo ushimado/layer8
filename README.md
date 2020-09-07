@@ -257,9 +257,9 @@ The [SignupAccessor](https://github.com/hashibuto/layer8/blob/master/src/example
 
 In the example:
 ```
-SignupAccessors.FIRST_NAME = new StringAccessor('first_name').range(1, 50);
-SignupAccessors.LAST_NAME = new StringAccessor('last_name').range(1, 50);
-SignupAccessors.EMAIL = new EmailAccessor('email');
+SignupAccessors.FIRST_NAME = new StringAccessor('first_name').range(1, 50).trim().noSpaces();
+SignupAccessors.LAST_NAME = new StringAccessor('last_name').range(1, 50).trim().noSpaces();
+SignupAccessors.EMAIL = new EmailAccessor('email').trim();
 SignupAccessors.PASSWORD = new StringAccessor('password').range(8, 200);
 ```
 
