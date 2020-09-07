@@ -9,14 +9,21 @@ const ValidationError = require('../errors/ValidationError');
  */
 class PositiveIntAccessor extends IntAccessor {
 
-  constructor(key, isRequired=true, defaultValue=undefined, allowZero=false) {
-    super(key, isRequired, defaultValue);
-    this.allowZero = allowZero;
+  /**
+   * Sets whether or not zero is allowed.  By default zero is allowed.
+   *
+   * @param {*} [allow=undefined]
+   * @memberof PositiveIntAccessor
+   */
+  allowZero(allow=undefined) {
+    this.allowZero = allow;
+
+    return this;
   }
 
   validate(body) {
     const rawValue = super.validate(body);
-    if (rawValue < (this.allowZero ? 1 : 0)) {
+    if (rawValue < (this.allowZero === false ? 1 : 0)) {
       throw new ValidationError(
         this.keyName,
         `The value${this.keyPositionStr()}is not a positive integer`

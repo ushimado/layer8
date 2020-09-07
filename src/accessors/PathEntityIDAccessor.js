@@ -24,22 +24,25 @@ class PathEntityIDAccessor extends Accessor {
       );
     }
 
-    rawValue = parseInt(rawValue);
-    if (isNaN(rawValue)) {
+    const parsed = parseInt(rawValue);
+    if (
+      isNaN(parsed) ||
+      parsed.toString() !== rawValue.toString()
+    ) {
       throw new ValidationError(
         this.keyName,
         `The value${this.keyPositionStr()}is not an integer`,
       );
     }
 
-    if (rawValue < 1) {
+    if (parsed < 1) {
       throw new ValidationError(
         this.keyName,
         `Entity ID${this.keyPositionStr()}must be > 0`,
       )
     }
 
-    return rawValue;
+    return parsed;
   }
 
 }

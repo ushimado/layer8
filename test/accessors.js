@@ -5,6 +5,8 @@ const EmailAccessor = require('../src/accessors/EmailAccessor');
 const IntAccessor = require('../src/accessors/IntAccessor');
 const NumericAccessor = require('../src/accessors/NumericAccessor');
 const PathEntityIDAccessor = require('../src/accessors/PathEntityIDAccessor');
+const PositiveIntAccessor = require('../src/accessors/PositiveIntAccessor');
+const PositiveNumericAccessor = require('../src/accessors/PositiveNumericAccessor');
 const assert = require('assert');
 
 const mostlyStringArray = ['abc', 'def', 8, 'ghi'];
@@ -96,7 +98,7 @@ describe("Test int accessor", () => {
 })
 
 describe("Test numeric accessor", () => {
-  numericAccessor = new NumericAccessor(null);
+  const numericAccessor = new NumericAccessor(null);
   it('Should fail with string data', () => {
     validate(numericAccessor, 'abc');
   });
@@ -107,5 +109,81 @@ describe("Test numeric accessor", () => {
 
   it('Should not fail with float data', () => {
     numericAccessor.validate(-1.3);
+  });
+})
+
+describe("Test path entity id accessor", () => {
+  const pathEntityIDAccessor = new PathEntityIDAccessor(null);
+  it('Should fail with numbers below 1', () => {
+    validate(pathEntityIDAccessor, 0);
+  });
+
+  it('Should fail with non-numeric strings', () => {
+    validate(pathEntityIDAccessor, '1abc');
+  });
+
+  it('Should fail with out of range numeric strings', () => {
+    validate(pathEntityIDAccessor, '-1');
+  });
+
+  it('Should fail with positive integers (since not string rep)', () => {
+    validate(pathEntityIDAccessor, 3);
+  });
+
+  it('Should not fail with string representations of positive integers', () => {
+    pathEntityIDAccessor.validate('3');
+  });
+})
+
+describe("Test positive int accessor", () => {
+  const positiveIntAccessor = new PositiveIntAccessor(null)
+  it('Should fail with non integers', () => {
+    validate(positiveIntAccessor, 2.2);
+  });
+
+  it('Should fail with negative integers', () => {
+    validate(positiveIntAccessor, -5);
+  });
+
+  it('Should fail with string representations of integers', () => {
+    validate(positiveIntAccessor, '5');
+  });
+
+  it('By default, zero should be ok', () => {
+    positiveIntAccessor.validate(0);
+  });
+
+  it('It should fail on zero when zero is disallowed', () => {
+    const pIntAccessor = new PositiveIntAccessor(null).allowZero(false)
+    validate(pIntAccessor, 0);
+  });
+
+  it('It should not fail on a positive integer', () => {
+    positiveIntAccessor.validate(5);
+  });
+})
+
+describe("Test positive numeric accessor", () => {
+  const positiveNumericAccessor = new PositiveNumericAccessor(null);
+
+  it('Should not accept non-numeric data', () => {
+    validate(positiveNumericAccessor, 'abc');
+  });
+
+  it('Should not accept negative numeric values', () => {
+    validate(positiveNumericAccessor, -1.5);
+  });
+
+  it('Should not accept zero values when specified not to', () => {
+    const pNumericAccessor = new PositiveIntAccessor(null).allowZero(false);
+    validate(pNumericAccessor, 0);
+  });
+
+  it('Should accept positive numeric values', () => {
+    positiveNumericAccessor.validate(1.4);
+  });
+
+  it('Should accept zero values by default', () => {
+    positiveNumericAccessor.validate(1.4);
   });
 })
