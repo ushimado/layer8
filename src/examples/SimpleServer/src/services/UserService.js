@@ -39,7 +39,9 @@ class UserService {
   static getUserById(userId) {
     assert(userId in UserService.USERS_BY_ID);
 
-    return UserService.USERS_BY_ID[userId];
+    return {
+      ...UserService.USERS_BY_ID[userId],
+    };
   }
 
   static getUserByEmail(email) {
@@ -47,7 +49,9 @@ class UserService {
       return null;
     }
 
-    return UserService.USERS_BY_EMAIL[email];
+    return {
+      ...UserService.USERS_BY_EMAIL[email],
+    }
   }
 
 }

@@ -130,7 +130,7 @@ class Server {
               ) return;
             }
 
-            const responseBody = await controller[controllerExecuteMethodName](
+            let responseBody = await controller[controllerExecuteMethodName](
               session, ...validatedArgs
             ).catch(async e => {
               this._createErrorResponse(
