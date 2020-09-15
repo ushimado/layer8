@@ -2,7 +2,7 @@ const Controller = require('../src/Controller');
 const Endpoint = require('../src/Endpoint');
 const { AssertionError } = require('assert')
 
-describe("Test string accessor", () => {
+describe("Test controller", () => {
 
   it('Should fail if attempting to expose the same method twice', () => {
     try {
