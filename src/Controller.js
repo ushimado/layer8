@@ -1,4 +1,6 @@
 const NotImplementedError = require('./errors/NotImplementedError');
+const Endpoint = require('./Endpoint');
+const assert = require('assert');
 
 class Controller {
 
@@ -11,6 +13,19 @@ class Controller {
    * @memberof Controller
    */
   constructor(basePath, endpoints, middlewares) {
+    assert(Array.isArray(endpoints), 'Argument must be an array of endpoint objects');
+    assert(endpoints.length > 0, 'A controller must expose at least one endpoint');
+
+    const methods = new Set();
+    endpoints.forEach(endpoint => {
+      assert(endpoint instanceof Endpoint, 'Each endpoint must be an Endpoint object instance');
+      assert(
+        !methods.has(endpoint.method),
+        `Controller cannot expose ${endpoint.method} more than once`
+      );
+      methods.add(endpoint.method)
+    });
+
     this.basePath = basePath;
     this.endpoints = endpoints;
 

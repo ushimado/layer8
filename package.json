@@ -1,7 +1,7 @@
 {
   "name": "layer8",
-  "version": "1.0.1",
-  "description": "Layer8 provides a RESTful controller framework, built on top of Koa, providing common features such as data validation, and session management.",
+  "version": "1.0.2",
+  "description": "Layer8 provides a RESTful web application framework, built on top of Koa, providing common features such as data validation, and session management.",
   "main": "./src/index.js",
   "scripts": {
     "test": "mocha"
@@ -16,7 +16,10 @@
   "keywords": [
     "REST",
     "web service",
-    "web framework"
+    "web framework",
+    "web application",
+    "koa",
+    "express"
   ],
   "dependencies": {
     "koa": "^2.12.1",

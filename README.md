@@ -11,6 +11,9 @@ An organized yet versatile web services framework (built on top of Koa).
 ## Philosophy
 When designing Layer8, the goal was to standardize the process of adding RESTful endpoints while eliminating a lot of the boilerplate necessary to accomplish this with frameworks such as Koa or Express.  Extending web services should be easy, with as little boilerplate as possible, allowing the developer to focus on business logic rather than framework.
 
+## Example application
+Most of the functionality provided in Layer8 is demonstrated in the [example application](https://github.com/hashibuto/layer8/tree/master/src/examples/SimpleServer).  The application is NOT meant to be realistic from a best practices standpoint (serving static assets within the web application), but rather a full demonstration of what Layer8 is capable of, with working examples.
+
 ## The server
 Layer8 is built around [Koa](https://www.npmjs.com/package/koa) which has served as a reliable base for writing web services.  Below is a sample illustrating the most basic server configuration:
 
