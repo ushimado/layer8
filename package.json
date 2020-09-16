@@ -1,6 +1,6 @@
 {
   "name": "layer8",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Layer8 provides a RESTful web application framework, built on top of Koa, providing common features such as data validation, and session management.",
   "main": "./src/index.js",
   "scripts": {

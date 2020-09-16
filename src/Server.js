@@ -30,7 +30,7 @@ class Server {
     onExecutionComplete,
     onExecutionFailure,
     middlewares,
-    verbose=False,
+    verbose=false,
   ) {
     this.server = new Koa();
     this.verbose = verbose;
