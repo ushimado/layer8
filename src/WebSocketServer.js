@@ -6,8 +6,11 @@ const Response = require('./websocket/Response');
 const StatusLine = require('./websocket/StatusLine');
 const Header = require('./websocket/Header');
 const Headers = require('./websocket/Headers');
-const { HTTPStatusCodes } = require('.');
 const ExtensionOptionsNotSupported = require('./errors/ExtensionOptionsNotSupported');
+const ParseError = require('./errors/ParseError');
+const ValidationError = require('./errors/ValidationError');
+const HTTPStatusCodes = require('./HTTPStatusCodes');
+const crypto = require('crypto');
 
 /**
  * Implements a websocket server.
@@ -56,7 +59,7 @@ class WebSocketServer {
     try {
       request = Request.parse(data);
 
-      const securityKeyHeader = this.request.headers.get(WebSocketServer.SEC_WEBSOCKET_KEY);
+      const securityKeyHeader = request.headers.get(WebSocketServer.SEC_WEBSOCKET_KEY);
       if (securityKeyHeader === undefined) {
         throw new Error("No security header present");
       }
@@ -66,7 +69,7 @@ class WebSocketServer {
       shasum.update(`${securityKey}${WebSocket.GUID}`);
       acceptKey = shasum.digest('base64');
 
-      const extensionHeader = this.request.headers.get(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS);
+      const extensionHeader = request.headers.get(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS);
       if (extensionHeader === undefined) {
         // Empty set of extensions
         extensions = new Extensions([]);
@@ -111,7 +114,20 @@ class WebSocketServer {
         }
       });
     } catch(e) {
+      if (this.verbose) {
+        console.debug(`${webSocket.getLogHeader()}Handshake failed:\n${e}`);
+      } else {
+        console.error(`${webSocket.getLogHeader()}Handshake failed`);
+      }
       webSocket.socket.destroy();
+
+      if (!(
+        e instanceof ParseError ||
+        e instanceof ValidationError
+      )) {
+        throw e;
+      }
+
       return null;
     }
 
@@ -144,7 +160,7 @@ class WebSocketServer {
 
   cleanup(webSocket) {
     if (this.verbose === true) {
-      console.debug(`${webSocket.getLogHeader} - Was cleaned from the server`);
+      console.debug(`${webSocket.getLogHeader()}Was cleaned from the server`);
     }
     delete this.clientById[webSocket.id];
   }
@@ -168,7 +184,7 @@ class WebSocketServer {
     this.clientById[id] = new WebSocket(this, socket, id, this.verbose);
 
     if (this.verbose === true) {
-      console.debug(`${this.clientById[id].getLogHeader()} - Connected to the server`);
+      console.debug(`${this.clientById[id].getLogHeader()}Connected to the server`);
     }
   }
 

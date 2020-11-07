@@ -2,6 +2,7 @@ const RequestLine = require('./RequestLine');
 const Headers = require('./Headers');
 const Header = require('./Header');
 const querystring = require('querystring');
+const assert = require('assert');
 
 class Request {
 
@@ -47,7 +48,7 @@ class Request {
       this.method = requestLine.method;
       this.headers = headers;
 
-      const queryString = this.requestLine.url.search;
+      const queryString = requestLine.url.search;
       if (queryString.length === 0) {
         this.queryArgs = {}
       } else {

@@ -20,11 +20,15 @@ class RequestLine {
       throw new ParseError(`Unsupported method ${method}`);
     }
 
-    let url;
+    let url, fullUri;
     try {
-      url = new URL(uri);
+      let fullUri = uri;
+      if (uri.startsWith('/')) {
+        fullUri = `ws://0.0.0.0${uri}`
+      }
+      url = new URL(fullUri);
     } catch(e) {
-      throw new ParseError("Unable to parse request URI");
+      throw new ParseError(`Unable to parse request URI:\n${fullUri}`);
     }
 
     return new RequestLine(

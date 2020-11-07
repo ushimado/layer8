@@ -1,9 +1,6 @@
 const assert = require('assert');
 const querystring = require('querystring');
-const Endpoint = require('../Endpoint');
 const crypto = require('crypto');
-const Request = require('./Request');
-const Extensions = require('./Extensions');
 const { write } = require('fs');
 
 class WebSocket {
@@ -31,6 +28,10 @@ class WebSocket {
   async onData(data) {
     assert(data instanceof Buffer)
     if (this.request === null) {
+      if (this.verbose === true) {
+        console.debug(`${this.getLogHeader()}Received handshake request\n${data.toString()}`)
+      }
+
       const result = this.webSocketServer.doHandshake(this, data);
       if (result !== null) {
         const [
@@ -51,11 +52,14 @@ class WebSocket {
   }
 
   async onClose() {
+    if (this.verbose === true) {
+      console.debug(`${this.getLogHeader()}Connection closed`)
+    }
     this.webSocketServer.cleanup(this);
   }
 
   getLogHeader() {
-    return `WebSocket:${this.id}`;
+    return `WebSocket:${this.id}: `;
   }
 }
 
