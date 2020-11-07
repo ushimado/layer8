@@ -1,4 +1,8 @@
-const { Server } = require('layer8');
+const {
+  WebServer,
+  WebSocketServer,
+  PerMessageDeflateExtension,
+} = require('layer8');
 const SignupController = require('./controllers/SignupController');
 const IndexController = require('./controllers/IndexController');
 const LoginController = require('./controllers/LoginController');
@@ -6,9 +10,12 @@ const AppController = require('./controllers/AppController');
 const UserController = require('./controllers/UserController');
 const HobbyController = require('./controllers/HobbyController');
 
-const port = 8888;
+const TickerMessageProcessor = require('./message_processors/TickerMessageProcessor');
 
-const appServer = new Server(
+const AS_PORT = 8888;
+const WS_PORT = 8889;
+
+const appServer = new WebServer(
   [
     new IndexController(),
     new SignupController(),
@@ -38,5 +45,18 @@ const appServer = new Server(
   true,
 );
 
-console.log(`Listening on port ${port}`);
-appServer.server.listen(port);
+console.log(`Application server listening on port ${AS_PORT}`);
+appServer.server.listen(AS_PORT);
+
+console.log(`WebSocket server listening on port ${WS_PORT}`);
+const webSocketServer = new WebSocketServer(
+  [
+    new TickerMessageProcessor(),
+
+  ],
+  [
+    PerMessageDeflateExtension,
+  ],
+  true,
+);
+webSocketServer.listen(WS_PORT);

@@ -30,6 +30,12 @@
             'Authorization': 'Bearer ' + authToken,
           };
 
+          var webSocket = new WebSocket("ws://localhost:8889/ticker?auth_token=" + authToken);
+          webSocket.onopen = function (event) {
+            console.log("Websocket open");
+            webSocket.send("First message!");
+          };
+
           var requestHobbyInfo = hobbyId => {
             return () => {
               // Request hobby info by id

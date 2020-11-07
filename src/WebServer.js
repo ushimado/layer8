@@ -5,10 +5,10 @@ const assert = require('assert');
 const ValidationError = require('./errors/ValidationError');
 const ResponseObject = require('./responseTypes/ResponseObject');
 
-class Server {
+class WebServer {
 
   /**
-   * Creates an instance of Server.
+   * Creates an instance of WebServer.
    *
    * @param {Array} controllers - Array of controller instances which will be managed by this
    * server.
@@ -22,7 +22,7 @@ class Server {
    * throws an exception. (Optional)
    * @param {Array} middlewares - An array of middlewares to use at the server level. (Optional)
    * @param {boolean} verbose - If true, verbose output is enabled
-   * @memberof Server
+   * @memberof WebServer
    */
   constructor(
     controllers,
@@ -213,7 +213,7 @@ class Server {
    * @param {number} statusCode - HTTP status code
    * @param {string} type - Error code / class
    * @param {string} message - Error message
-   * @memberof Server
+   * @memberof WebServer
    */
   _createErrorResponse(ctx, statusCode, type, message) {
     ctx.status = statusCode;
@@ -227,4 +227,4 @@ class Server {
 
 }
 
-module.exports = Server;
+module.exports = WebServer;

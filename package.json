@@ -1,7 +1,7 @@
 {
   "name": "layer8",
   "version": "1.0.3",
-  "description": "Layer8 provides a RESTful web application framework, built on top of Koa, providing common features such as data validation, and session management.",
+  "description": "Layer8 provides a powerful RESTful web application framework as well as websocket framework, with features such as integrated authentication.",
   "main": "./src/index.js",
   "scripts": {
     "test": "mocha"
@@ -15,6 +15,7 @@
   "homepage": "https://github.com/hashibuto/layer8#readme",
   "keywords": [
     "REST",
+    "websockets",
     "web service",
     "web framework",
     "web application",

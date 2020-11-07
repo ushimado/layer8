@@ -138,6 +138,11 @@ describe("Test numeric accessor", () => {
   it('Should not fail with float data', () => {
     numericAccessor.validate(-1.3);
   });
+
+  it('Should not fail with parsed float data when string mode enabled', () => {
+    const nA = new NumericAccessor(null).fromString();
+    nA.validate('-1.2')
+  })
 })
 
 describe("Test path entity id accessor", () => {

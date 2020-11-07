@@ -27,12 +27,24 @@ class NumericAccessor extends Accessor {
     return this;
   }
 
+  /**
+   * If set, indicates that the number will be considered valid if it parses to a valid number
+   * even if the current data type is a string.
+   *
+   * @memberof NumericAccessor
+   */
+  fromString() {
+    this.__fromString = true;
+
+    return this;
+  }
+
   validate(body) {
     const rawValue = super.validate(body);
-
     if (
       Array.isArray(rawValue) ||
-      (parseFloat(rawValue) !== rawValue)
+      (this.__fromString === undefined && parseFloat(rawValue) !== rawValue) ||
+      (this.__fromString === true && isNaN(parseFloat(rawValue)))
     ) {
       throw new ValidationError(
         this.keyName,

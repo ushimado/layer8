@@ -1,6 +1,7 @@
 class HTTPStatusCodes {
 }
 
+HTTPStatusCodes.SWITCHING_PROTOCOLS = 101;
 HTTPStatusCodes.OK = 200;
 HTTPStatusCodes.CREATED = 201;
 HTTPStatusCodes.NO_CONTENT = 204;

@@ -14,7 +14,8 @@ class IntAccessor extends NumericAccessor {
 
     if (
       Array.isArray(rawValue) ||
-      (parseInt(rawValue) !== rawValue)
+      (this.__fromString === undefined && parseInt(rawValue) !== rawValue) ||
+      (this.__fromString === true && isNaN(parseInt(rawValue)))
     ) {
       throw new ValidationError(
         this.keyName,
