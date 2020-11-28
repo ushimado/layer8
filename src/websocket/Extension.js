@@ -32,23 +32,8 @@ class Extension {
     this.options = options;
   }
 
-  serialize() {
-    const options = [this.name];
-    for (let key in this.options) {
-      const value = this.options[key];
-
-      if (value === null) {
-        options.push(key);
-      } else {
-        options.push(`${key}=${value}`);
-      }
-    }
-
-    return options.join('; ');
-  }
-
 }
 
-Extension.OPTIONS_ACCESSOR = new DelimitedStringListAccessor(null, ';').trim().removeEmptyItems().minItems(0);
+Extension.OPTIONS_ACCESSOR = new DelimitedStringListAccessor(null, ';').trimItems().removeEmptyItems().minItems(0);
 
 module.exports = Extension;

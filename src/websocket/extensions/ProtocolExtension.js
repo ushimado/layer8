@@ -1,19 +1,35 @@
 class ProtocolExtension {
 
-  constructor(name) {
+  static name = null;
+
+  constructor(name, options) {
     this.name = name;
+    this.options = options;
   }
 
   static createInstance(extension) {
     throw new Error("Not implemented");
   }
 
-  onWrite(data) {
-    return data;
+  async onWrite(frame) {
+    throw new Error('Not implemented')
   }
 
-  onRead(data) {
-    return data;
+  async onRead(frame) {
+    throw new Error('Not implemented')
+  }
+
+  serialize() {
+    const serOptions = this._serializeOptions();
+    if (serOptions.length === 0) {
+      return this.name;
+    }
+
+    return `${this.name} ${serOptions}`;
+  }
+
+  _serializeOptions() {
+    throw new Error("Not implemented");
   }
 }
 

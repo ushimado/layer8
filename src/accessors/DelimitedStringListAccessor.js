@@ -60,7 +60,7 @@ class DelimitedStringListAccessor extends StringAccessor {
       }
     }
 
-    return rawValue;
+    return parts;
   }
 
   trimItems() {

@@ -1,7 +1,6 @@
 module.exports = {
   WebServer: require('./WebServer'),
   WebSocketServer: require('./WebSocketServer'),
-  MessageProcessor: require('./MessageProcessor'),
   Endpoint: require('./Endpoint'),
   Controller: require('./Controller'),
   Authenticator: require('./authenticators/Authenticator'),
@@ -27,5 +26,7 @@ module.exports = {
   HTTPStatusCodes: require('./HTTPStatusCodes'),
   Cookie: require('./Cookie'),
   PerMessageDeflateExtension: require('./websocket/extensions/PerMessageDeflateExtension'),
+  MessageProcessor: require('./websocket/MessageProcessor'),
+  JSONMessageProcessor: require('./websocket/JSONMessageProcessor'),
 }
 

@@ -1,7 +1,6 @@
 const assert = require('assert');
-const querystring = require('querystring');
-const crypto = require('crypto');
-const { write } = require('fs');
+const Frame = require('./Frame');
+const FrameBuffer = require('./FrameBuffer');
 
 class WebSocket {
 
@@ -23,6 +22,8 @@ class WebSocket {
     this.request = null;
     this.extensions = null;
     this.session = null;
+    this.messageProcessor = null;
+    this.frameBuffer = new FrameBuffer();
   }
 
   async onData(data) {
@@ -32,22 +33,44 @@ class WebSocket {
         console.debug(`${this.getLogHeader()}Received handshake request\n${data.toString()}`)
       }
 
-      const result = this.webSocketServer.doHandshake(this, data);
+      const result = await this.webSocketServer.doHandshake(this, data);
       if (result !== null) {
         const [
           request,
           extensions,
           session,
+          messageProcessor,
         ] = result;
 
         this.request = request;
         this.extensions = extensions;
         this.session = session;
+        this.messageProcessor = messageProcessor;
 
-        return;
+        this.messageProcessor.onConnect(this.session, this);
+      }
+    } else {
+      let frame = new Frame(data);
+      // Process the input buffer via all the supported extensions (order from left to right)
+      for (let i = 0; i < this.extensions.length; i++) {
+        const extension = this.extensions[i];
+        frame = await extension.onRead(frame);
       }
 
-      // Perform regular data processing
+      const result = this.frameBuffer.ingest(frame);
+      if (result !== null) {
+        await this.messageProcessor._onRead(this.session, this, result);
+      }
+    }
+  }
+
+  async write(data) {
+    assert(data instanceof Buffer);
+
+    let frame = Frame.create(data, false, false, false, 0, true);
+    for (let i = this.extensions.length - 1; i >= 0; i--) {
+      const extension = this.extensions[i];
+      frame = await extension.onWrite(frame);
     }
   }
 
@@ -56,6 +79,13 @@ class WebSocket {
       console.debug(`${this.getLogHeader()}Connection closed`)
     }
     this.webSocketServer.cleanup(this);
+
+    // Only fire the message processor if the initial request had completed successfully.  Any
+    // disconnect during handshake etc, won't cause the message processor onDisconnect to fire
+    // since the onConnect would never have fired.
+    if (this.request !== null) {
+      this.messageProcessor.onDisconnect(this.session, this);
+    }
   }
 
   getLogHeader() {

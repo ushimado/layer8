@@ -1,5 +1,6 @@
 const Extension = require('./Extension');
 const DelimitedStringListAccessor = require('../accessors/DelimitedStringListAccessor');
+const assert = require('assert');
 
 class Extensions {
 
@@ -15,18 +16,11 @@ class Extensions {
     });
 
     this.__extensionByName = extensionsByName;
-    this.__extensions = [];
   }
 
   static parse(data) {
     const parts = Extensions.EXTENSION_ACCESSOR.validate(data)
     return new Extensions(parts.map(part => Extension.parse(part)));
-  }
-
-  serialize(supportedNames) {
-    assert(supportedNames instanceof Set);
-    const serialized = extensions.filter(extension => extension.name in supportedNames).map(extension.serialize());
-    return serialized.join(', ')
   }
 
   /**

@@ -10,15 +10,13 @@ class Response {
   }
 
   serialize() {
-    const lines = [];
-    lines.push(this.statusLine.serialize())
+    const ser = [];
+    ser.push(this.statusLine.serialize())
     if (this.headers !== null) {
-      this.headers.forEach(header => {
-        lines.push(header.serialize())
-      })
+      ser.push(this.headers.serialize());
     }
 
-    return lines.join('');
+    return ser.join('') + '\r\n';
   }
 }
 

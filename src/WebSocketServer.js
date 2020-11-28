@@ -10,6 +10,7 @@ const ExtensionOptionsNotSupported = require('./errors/ExtensionOptionsNotSuppor
 const ParseError = require('./errors/ParseError');
 const ValidationError = require('./errors/ValidationError');
 const HTTPStatusCodes = require('./HTTPStatusCodes');
+const Extensions = require('./websocket/Extensions');
 const crypto = require('crypto');
 
 /**
@@ -41,6 +42,7 @@ class WebSocketServer {
     this.messageProcessorsByEndpoint = {};
     this.messageProcessors.forEach(messageProcessor => {
       this.messageProcessorsByEndpoint[messageProcessor.endpoint] = messageProcessor;
+      messageProcessor.bind(this);
     });
 
     this.protocolExtensions = {};
@@ -54,8 +56,9 @@ class WebSocketServer {
     this.idCounter = 0;
   }
 
-  doHandshake(webSocket, data) {
-    let request, extensions, acceptKey, session;
+  async doHandshake(webSocket, data) {
+    let request, extensions, acceptKey, session, messageProcessor;
+    const appliedExtensions = [];
     try {
       request = Request.parse(data);
 
@@ -66,7 +69,7 @@ class WebSocketServer {
 
       const securityKey = securityKeyHeader.value;
       const shasum = crypto.createHash('sha1');
-      shasum.update(`${securityKey}${WebSocket.GUID}`);
+      shasum.update(`${securityKey}${WebSocketServer.GUID}`);
       acceptKey = shasum.digest('base64');
 
       const extensionHeader = request.headers.get(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS);
@@ -79,14 +82,14 @@ class WebSocketServer {
       }
 
       const pathname = request.url.pathname;
-      const messageProcessor = this._getMessageProcessorByEndpoint(pathname);
+      messageProcessor = this._getMessageProcessorByEndpoint(pathname);
       if (messageProcessor === null) {
         throw new Error(`Pathname ${pathname} is not supported by this server`);
       }
 
       // If not present, will be set to undefined
-      const authToken = request.queryArgs[WebSocket.AUTH_TOKEN_KEY];
-      session = messageProcessor.authenticate(authToken);
+      const authToken = request.queryArgs[WebSocketServer.AUTH_TOKEN_KEY];
+      session = await messageProcessor.authenticate(authToken);
       if (session === null) {
         const response = new Response(
           new StatusLine(WebSocketServer.PROTOCOL, HTTPStatusCodes.UNAUTHORIZED, 'Unauthorized')
@@ -94,15 +97,16 @@ class WebSocketServer {
 
         webSocket.socket.write(response.serialize());
         webSocket.socket.end();
+        return null;
       }
 
-      const supportedNames = new Set();
-      extensions.forEach(extension => {
+      extensions.getAll().forEach(extension => {
         if (extension.name in this.protocolExtensions) {
           // Extension is available
           const protocolExtensionClass = this.protocolExtensions[extension.name];
           try {
-            const protocolExtension = protocolExtension.createInstance(extension);
+            const protocolExtension = protocolExtensionClass.createInstance(extension);
+            appliedExtensions.push(protocolExtension);
           } catch(e) {
             if (e instanceof ExtensionOptionsNotSupported) {
               // Continue to the next extension, this one will not be supported
@@ -136,21 +140,28 @@ class WebSocketServer {
     headers.add(new Header('Connection', 'Upgrade'));
     headers.add(new Header(WebSocketServer.SEC_WEBSOCKET_ACCEPT, acceptKey));
 
-    const serExtensions = extensions.serialize(new Set(this.protocolExtensions.map(extension => extension.name)));
-    if (serExtensions.length > 0) {
-      headers.add(new Header(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS, serExtensions));
+    const extensionHeaderValue = appliedExtensions.map(extension => extension.serialize()).join('; ');
+    if (extensionHeaderValue.length > 0) {
+      headers.add(new Header(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS, extensionHeaderValue));
     }
 
     const response = new Response(
-      new StatusLine(WebSocketServer.PROTOCOL, HTTPStatusCodes.SWITCHING_PROTOCOLS, 'SWITCHING_PROTOCOLS')
+      new StatusLine(WebSocketServer.PROTOCOL, HTTPStatusCodes.SWITCHING_PROTOCOLS, 'SWITCHING_PROTOCOLS'),
+      headers,
     );
 
-    webSocket.socket.write(response.serialize());
+    const serializedResponse = response.serialize();
+    if (this.verbose) {
+      console.log(`${webSocket.getLogHeader()}Server sending handshake response`);
+      console.log(serializedResponse);
+    }
+    webSocket.socket.write(serializedResponse);
 
     return [
       request,
-      extensions,
+      appliedExtensions,
       session,
+      messageProcessor,
     ];
   }
 
@@ -163,6 +174,14 @@ class WebSocketServer {
       console.debug(`${webSocket.getLogHeader()}Was cleaned from the server`);
     }
     delete this.clientById[webSocket.id];
+  }
+
+  getSocket(id) {
+    if (id in this.clientById) {
+      return this.clientById[id];
+    }
+
+    return null;
   }
 
   _getMessageProcessorByEndpoint(endpoint) {

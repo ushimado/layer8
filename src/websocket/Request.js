@@ -7,7 +7,7 @@ const assert = require('assert');
 class Request {
 
   /**
-   * Parses the request it its entirety and stores information including headers and extensions.
+   * Parses the request in its entirety and stores information including headers and extensions.
    *
    * @param {Buffer} data
    * @memberof Request

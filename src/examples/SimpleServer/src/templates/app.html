@@ -33,7 +33,9 @@
           var webSocket = new WebSocket("ws://localhost:8889/ticker?auth_token=" + authToken);
           webSocket.onopen = function (event) {
             console.log("Websocket open");
-            webSocket.send("First message!");
+            webSocket.send(JSON.stringify({
+              message: 'First message!'
+            }));
           };
 
           var requestHobbyInfo = hobbyId => {
