@@ -2,9 +2,27 @@ const ExtensionRequest = require('./ExtensionRequest');
 const DelimitedStringListAccessor = require('../accessors/DelimitedStringListAccessor');
 const assert = require('assert');
 
+/**
+ * Encapsulates all extensions and their respective options, being requested by the client
+ *
+ * @class ExtensionsRequest
+ */
 class ExtensionsRequest {
 
+  static parse(data) {
+    const parts = ExtensionsRequest.EXTENSION_ACCESSOR.validate(data)
+    return new ExtensionsRequest(parts.map(part => ExtensionRequest.parse(part)));
+  }
+
+  /**
+   * Creates an instance of ExtensionsRequest.
+   *
+   * @param {Array} extensions - Extension objects to be added to the collection
+   * @memberof ExtensionsRequest
+   */
   constructor(extensions) {
+    assert(Array.isArray(extensions));
+
     const extensionsByName = {};
     this.__extensions = extensions;
     extensions.forEach(extension => {
@@ -18,28 +36,12 @@ class ExtensionsRequest {
     this.__extensionByName = extensionsByName;
   }
 
-  static parse(data) {
-    const parts = ExtensionsRequest.EXTENSION_ACCESSOR.validate(data)
-    return new ExtensionsRequest(parts.map(part => ExtensionRequest.parse(part)));
-  }
-
   /**
-   * Returns a list of extensions by this name.  Since clients can send multiple fallback variants
-   * of the same extension request, this method will always return a list, even if a single
-   * extension was requested by a given name.
+   * Returns an array of available extensions, in the order that they were requested.
    *
-   * @param {*} name
-   * @returns
+   * @returns {Array} - Array of Extension instances
    * @memberof ExtensionsRequest
    */
-  get(name) {
-    if (name in this.__collection) {
-      return this.__collection[name];
-    }
-
-    return undefined;
-  }
-
   getAll() {
     return this.__extensions;
   }

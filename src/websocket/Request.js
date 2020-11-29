@@ -9,13 +9,13 @@ class Request {
   /**
    * Parses the request in its entirety and stores information including headers and extensions.
    *
-   * @param {Buffer} data
+   * @param {String} data
+   * @returns {Request}
    * @memberof Request
    */
-  static parse(data) {
-    assert(data instanceof Buffer);
+  static parse(httpRequest) {
+    assert(typeof httpRequest === 'string');
 
-    const httpRequest = data.toString();
     let requestParts = httpRequest.split('\r\n');
     requestParts = requestParts.map(part => part.trim());
     requestParts = requestParts.filter(part => part.length > 0);
@@ -40,6 +40,13 @@ class Request {
     return new Request(requestLine, headers, )
   }
 
+  /**
+   * Creates an instance of Request.
+   *
+   * @param {RequestLine} requestLine
+   * @param {Headers} headers
+   * @memberof Request
+   */
   constructor(requestLine, headers) {
       assert(requestLine instanceof RequestLine);
       assert(headers instanceof Headers)

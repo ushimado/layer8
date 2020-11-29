@@ -23,7 +23,9 @@ class WebSocketServer {
   /**
    * Creates an instance of WebSocketServer.
    *
-   * @param {Array} messageProcessors - Array of message processors associated with this server.
+   * @param {Array} messageProcessors - Array of message processors associated with this server
+   * @param {protocolExtensions} - Array of protocol extensions supported by this server (nullable)
+   * @param {Boolean} - If true, verbose debugging information will be logged for most operations
    * @memberof WebSocketServer
    */
   constructor(messageProcessors, protocolExtensions=null, verbose=false) {
@@ -58,6 +60,16 @@ class WebSocketServer {
     this.idCounter = 0;
   }
 
+  /**
+   * Performs the handshake operation which negotiates any communication standards/protocols as well
+   * as authentication, before a client is officially registered within the server for subsequent
+   * communication.
+   *
+   * @param {WebSocket} webSocket - The socket for which handshake is being performed
+   * @param {Buffer} data - The client request (this implementation assumes the request will be)
+   * @returns
+   * @memberof WebSocketServer
+   */
   async doHandshake(webSocket, data) {
     let request, extensions, acceptKey, session, messageProcessor;
     const appliedExtensions = [];

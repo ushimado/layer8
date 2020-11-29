@@ -1,6 +1,7 @@
 const assert = require('assert');
 const Frame = require('./Frame');
 const FrameBuffer = require('./FrameBuffer');
+const RequestBuffer = require('./RequestBuffer');
 
 class WebSocket {
 
@@ -24,30 +25,38 @@ class WebSocket {
     this.session = null;
     this.messageProcessor = null;
     this.frameBuffer = new FrameBuffer();
+    this.requestBuffer = new RequestBuffer();
   }
 
   async onData(data) {
     assert(data instanceof Buffer)
     if (this.request === null) {
-      if (this.verbose === true) {
-        console.debug(`${this.getLogHeader()}Received handshake request\n${data.toString()}`)
-      }
+      const request = this.requestBuffer.ingest(data);
+      if (request === null) {
+        if (this.verbose === true) {
+          console.debug(`${this.getLogHeader()}Received partial handshake request\n${data.toString()}`)
+        }
+      } else {
+        if (this.verbose === true) {
+          console.debug(`${this.getLogHeader()}Received complete handshake request\n${data.toString()}`)
+        }
 
-      const result = await this.webSocketServer.doHandshake(this, data);
-      if (result !== null) {
-        const [
-          request,
-          extensions,
-          session,
-          messageProcessor,
-        ] = result;
+        const result = await this.webSocketServer.doHandshake(this, request);
+        if (result !== null) {
+          const [
+            request,
+            extensions,
+            session,
+            messageProcessor,
+          ] = result;
 
-        this.request = request;
-        this.extensions = extensions;
-        this.session = session;
-        this.messageProcessor = messageProcessor;
+          this.request = request;
+          this.extensions = extensions;
+          this.session = session;
+          this.messageProcessor = messageProcessor;
 
-        this.messageProcessor.onConnect(this.session, this);
+          this.messageProcessor.onConnect(this.session, this);
+        }
       }
     } else {
       let frame = new Frame(data);

@@ -1,4 +1,3 @@
-const Controller = require('../src/utils/BitUtils');
 const BitUtils = require('../src/utils/BitUtils');
 
 describe("Test bit utils", () => {

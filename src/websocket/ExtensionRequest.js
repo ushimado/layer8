@@ -3,14 +3,23 @@ const DelimitedStringListAccessor = require('../accessors/DelimitedStringListAcc
 const assert = require('assert');
 
 /**
- * Represents
+ * Client extension request
  *
  * @class ExtensionRequest
  */
 class ExtensionRequest {
 
-  static parse(extension) {
-    const parts = ExtensionRequest.OPTIONS_ACCESSOR.validate(extension);
+  /**
+   * Parses an extension request from the extension header and returns an ExtensionRequest instance
+   *
+   * @static
+   * @param {String} extensionRequest
+   * @returns {ExtensionRequest}
+   * @throws {ParseError} - If request cannot be parsed
+   * @memberof ExtensionRequest
+   */
+  static parse(extensionRequest) {
+    const parts = ExtensionRequest.OPTIONS_ACCESSOR.validate(extensionRequest);
 
     let name;
     const options = {};
@@ -24,12 +33,14 @@ class ExtensionRequest {
           options[optionPart0] = true;
         } else {
           if (optionParts.length > 2) {
-            throw new ParseError(`Invalid extension option ${extension}`);
+            throw new ParseError(`Invalid extension option ${extensionRequest}`);
           }
           let optionPart1 = optionParts[1].trim();
           if (optionPart1.startsWith('"') && optionPart1.endsWith('"')) {
             // Perform unquoting
-            assert(optionPart1.length > 2);
+            if (optionPart1.length < 3) {
+              throw new ParseError(`Bad or empty quoting in ${extensionRequest}`);
+            }
 
             optionPart1 = optionPart1.slice(1, -1);
           }
@@ -42,6 +53,13 @@ class ExtensionRequest {
     return new ExtensionRequest(name, options);
   }
 
+  /**
+   * Creates an instance of ExtensionRequest.
+   *
+   * @param {String} name - The name of the extension from the request header
+   * @param {Object} options - The requested options from the request header
+   * @memberof ExtensionRequest
+   */
   constructor(name, options) {
     this.name = name;
     this.options = options;
