@@ -10,7 +10,7 @@ const ExtensionOptionsNotSupported = require('./errors/ExtensionOptionsNotSuppor
 const ParseError = require('./errors/ParseError');
 const ValidationError = require('./errors/ValidationError');
 const HTTPStatusCodes = require('./HTTPStatusCodes');
-const Extensions = require('./websocket/Extensions');
+const ExtensionsRequest = require('./websocket/ExtensionsRequest');
 const crypto = require('crypto');
 
 /**
@@ -77,10 +77,10 @@ class WebSocketServer {
       const extensionHeader = request.headers.get(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS);
       if (extensionHeader === undefined) {
         // Empty set of extensions
-        extensions = new Extensions([]);
+        extensions = new ExtensionsRequest([]);
       } else {
         // Parse extensions from the header
-        extensions = Extensions.parse(extensionHeader.value);
+        extensions = ExtensionsRequest.parse(extensionHeader.value);
       }
 
       const pathname = request.url.pathname;

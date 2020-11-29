@@ -1,17 +1,31 @@
 const zlib = require('zlib');
 const ProtocolExtension = require("./ProtocolExtension");
-const Extension = require("../Extension");
+const ExtensionRequest = require("../ExtensionRequest");
 const ValidationError = require('../../errors/ValidationError');
 const PositiveIntAccessor = require("../../accessors/PositiveIntAccessor");
 const assert = require('assert');
 const Frame = require('../Frame');
 
+/**
+ * Implements the "permessage-deflate" websocket protocol extension.
+ *
+ * @class PerMessageDeflateExtension
+ * @extends {ProtocolExtension}
+ */
 class PerMessageDeflateExtension extends ProtocolExtension {
 
   static name = "permessage-deflate";
 
+  /**
+   * Implements the createInstance interface.
+   *
+   * @static
+   * @param {ExtensionRequest} extension - Client supplied extension request
+   * @returns {PerMessageDeflateExtension}
+   * @memberof PerMessageDeflateExtension
+   */
   static createInstance(extension) {
-    assert(extension instanceof Extension);
+    assert(extension instanceof ExtensionRequest);
     assert(extension.name === this.name);
 
     const options = {};
@@ -23,6 +37,14 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     return new PerMessageDeflateExtension(options);
   }
 
+  /**
+   * Validates the "server_no_context_takeover" option from a client supplied extension request.
+   *
+   * @static
+   * @param {ExtensionRequest} extension - Client supplied extension request
+   * @param {Object} options
+   * @memberof PerMessageDeflateExtension
+   */
   static validateServerNoContextTakeoverOption(extension, options) {
     if (PerMessageDeflateExtension.SERVER_NO_CONTEXT_TAKEOVER_OPTION in extension.options) {
       const option = extension.options[PerMessageDeflateExtension.SERVER_NO_CONTEXT_TAKEOVER_OPTION];
@@ -39,6 +61,14 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     }
   }
 
+  /**
+   * Validates the "client_no_context_takeover" option from a client supplied extension request.
+   *
+   * @static
+   * @param {ExtensionRequest} extension - Client supplied extension request
+   * @param {Object} options
+   * @memberof PerMessageDeflateExtension
+   */
   static validateClientNoContextTakeoverOption(extension, options) {
     if (PerMessageDeflateExtension.CLIENT_NO_CONTEXT_TAKEOVER_OPTION in extension.options) {
       const option = extension.options[PerMessageDeflateExtension.CLIENT_NO_CONTEXT_TAKEOVER_OPTION];
@@ -55,6 +85,14 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     }
   }
 
+  /**
+   * Validates the "server_max_window_bits" option from a client supplied extension request.
+   *
+   * @static
+   * @param {ExtensionRequest} extension - Client supplied extension request
+   * @param {Object} options
+   * @memberof PerMessageDeflateExtension
+   */
   static validateServerMaxWindowBitsOption(extension, options) {
     if (PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS in extension.options) {
       const option = extension.options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS];
@@ -69,6 +107,14 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     }
   }
 
+  /**
+   * Validates the "client_max_window_bits" option from a client supplied extension request.
+   *
+   * @static
+   * @param {ExtensionRequest} extension - Client supplied extension request
+   * @param {Object} options
+   * @memberof PerMessageDeflateExtension
+   */
   static validateClientMaxWindowBitsOption(extension, options) {
     if (PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS in extension.options) {
       const option = extension.options[PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS];
@@ -83,6 +129,13 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     }
   }
 
+  /**
+   * Creates an instance of PerMessageDeflateExtension.
+   *
+   * @param {Object} options - Options for use with the extension as requested by the client if
+   * fulfillable by the server.
+   * @memberof PerMessageDeflateExtension
+   */
   constructor(options) {
     super(
       PerMessageDeflateExtension.name,
@@ -107,6 +160,13 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     this.__rawDeflate = null;
   }
 
+  /**
+   * Implements the onWrite interface, compressing the payload and returning a new, compressed frame
+   *
+   * @param {*} frame
+   * @returns {Frame}
+   * @memberof PerMessageDeflateExtension
+   */
   async onWrite(frame) {
     // This will require creation of a new frame, since payload information, size, etc. will change
 
@@ -156,6 +216,14 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     return p;
   }
 
+  /**
+   * Implements the onRead interface, decompressing the payload and returning a new, decompressed
+   * frame
+   *
+   * @param {*} frame
+   * @returns {Frame}
+   * @memberof PerMessageDeflateExtension
+   */
   async onRead(frame) {
     // RSV1 is designated as the compression bit, if set, compression has been applied.
     if (frame.rsv1 === true) {
@@ -205,6 +273,13 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     return frame;
   }
 
+  /**
+   * Implements the _serializeOptions interface and returns the options string based on the client
+   * / server negotiation for the handshake response.
+   *
+   * @returns {String}
+   * @memberof PerMessageDeflateExtension
+   */
   _serializeOptions() {
     const options = this.options;
     const optionsList = [];
@@ -228,7 +303,7 @@ class PerMessageDeflateExtension extends ProtocolExtension {
       );
     }
 
-    return optionsList.join(', ');
+    return optionsList.join('; ');
   }
 }
 

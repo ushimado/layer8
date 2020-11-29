@@ -1,8 +1,8 @@
-const Extension = require('./Extension');
+const ExtensionRequest = require('./ExtensionRequest');
 const DelimitedStringListAccessor = require('../accessors/DelimitedStringListAccessor');
 const assert = require('assert');
 
-class Extensions {
+class ExtensionsRequest {
 
   constructor(extensions) {
     const extensionsByName = {};
@@ -19,8 +19,8 @@ class Extensions {
   }
 
   static parse(data) {
-    const parts = Extensions.EXTENSION_ACCESSOR.validate(data)
-    return new Extensions(parts.map(part => Extension.parse(part)));
+    const parts = ExtensionsRequest.EXTENSION_ACCESSOR.validate(data)
+    return new ExtensionsRequest(parts.map(part => ExtensionRequest.parse(part)));
   }
 
   /**
@@ -30,7 +30,7 @@ class Extensions {
    *
    * @param {*} name
    * @returns
-   * @memberof Extensions
+   * @memberof ExtensionsRequest
    */
   get(name) {
     if (name in this.__collection) {
@@ -46,6 +46,6 @@ class Extensions {
 
 }
 
-Extensions.EXTENSION_ACCESSOR = new DelimitedStringListAccessor(null, ',').trim().removeEmptyItems().minItems(0);
+ExtensionsRequest.EXTENSION_ACCESSOR = new DelimitedStringListAccessor(null, ',').trim().removeEmptyItems().minItems(0);
 
-module.exports = Extensions;
+module.exports = ExtensionsRequest;
