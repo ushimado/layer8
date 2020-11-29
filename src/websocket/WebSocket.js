@@ -57,9 +57,18 @@ class WebSocket {
         frame = await extension.onRead(frame);
       }
 
-      const result = this.frameBuffer.ingest(frame);
-      if (result !== null) {
-        await this.messageProcessor._onRead(this.session, this, result);
+      if (Frame.DATA_FRAME_OPCODES.has(frame.opcode)) {
+        // If the frame is a data frame, pass it onto the frame buffer and message processor if
+        // a complete message emerges
+        const result = this.frameBuffer.ingest(frame);
+        if (result !== null) {
+          await this.messageProcessor._onRead(this.session, this, result);
+        }
+      } else {
+        // Something else arrived...  If in verbose mode, log it.
+        if (this.verbose === true) {
+          console.debug(frame.payload.toString());
+        }
       }
     }
   }
@@ -67,11 +76,13 @@ class WebSocket {
   async write(data) {
     assert(data instanceof Buffer);
 
-    let frame = Frame.create(data, false, false, false, 0, true);
+    let frame = Frame.create(data, false, false, false, Frame.OPCODE_TEXT_FRAME, true);
     for (let i = this.extensions.length - 1; i >= 0; i--) {
       const extension = this.extensions[i];
       frame = await extension.onWrite(frame);
     }
+
+    this.socket.write(frame.buffer);
   }
 
   async onClose() {

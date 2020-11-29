@@ -38,10 +38,12 @@ class WebSocketServer {
     this.server = server;
     this.messageProcessors = messageProcessors;
     this.verbose = verbose;
+    this.clientIdsByMessageProcessorEndpoint = {};
 
     this.messageProcessorsByEndpoint = {};
     this.messageProcessors.forEach(messageProcessor => {
       this.messageProcessorsByEndpoint[messageProcessor.endpoint] = messageProcessor;
+      this.clientIdsByMessageProcessorEndpoint[messageProcessor.endpoint] = new Set();
       messageProcessor.bind(this);
     });
 
@@ -157,6 +159,10 @@ class WebSocketServer {
     }
     webSocket.socket.write(serializedResponse);
 
+    // Add this client to the message processor mapping in order to faciliate message processor-wide
+    // broadcasts to clients
+    this.clientIdsByMessageProcessorEndpoint[messageProcessor.endpoint].add(webSocket.id);
+
     return [
       request,
       appliedExtensions,
@@ -174,6 +180,13 @@ class WebSocketServer {
       console.debug(`${webSocket.getLogHeader()}Was cleaned from the server`);
     }
     delete this.clientById[webSocket.id];
+
+    // If the message processor is null, it means that it has not yet been assigned one due to
+    // processing error during the handshake, etc.
+    if (webSocket.messageProcessor !== null) {
+      const messageProcessor = webSocket.messageProcessor;
+      this.clientIdsByMessageProcessorEndpoint[messageProcessor.endpoint].delete(webSocket.id);
+    }
   }
 
   getSocket(id) {
@@ -182,6 +195,20 @@ class WebSocketServer {
     }
 
     return null;
+  }
+
+  /**
+   * Returns an array of WebSocket instances interacting with the supplied message processor.
+   *
+   * @param {*} messageProcessor
+   * @returns
+   * @memberof WebSocketServer
+   */
+  getSocketsByMessageProcessor(messageProcessor) {
+    assert(messageProcessor.endpoint in this.clientIdsByMessageProcessorEndpoint);
+    return [...this.clientIdsByMessageProcessorEndpoint[messageProcessor.endpoint].values()].map(id => {
+      return this.clientById[id];
+    });
   }
 
   _getMessageProcessorByEndpoint(endpoint) {

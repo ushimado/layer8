@@ -1,6 +1,7 @@
 const assert = require('assert');
 const WebSocketServer = require('../WebSocketServer');
 const WebSocket = require('./WebSocket');
+const Frame = require('./Frame');
 
 class MessageProcessor {
 
@@ -31,7 +32,7 @@ class MessageProcessor {
   }
 
   bind(webSocketServer) {
-    assert(websocketServer instanceof WebSocketServer);
+    assert(webSocketServer instanceof WebSocketServer);
     assert(
       this.webSocketServer === null,
       "This message processor is already bound to a websocket server"
@@ -44,7 +45,26 @@ class MessageProcessor {
     return this.onRead(session, socket, data);
   }
 
+  async _onWrite(data) {
+    return data;
+  }
+
+  /**
+   * Broadcasts data to all connected sockets registered on this message processor's endpoint.
+   *
+   * @param {*} data
+   * @memberof MessageProcessor
+   */
+  async broadcast(data) {
+    const sockets = this.webSocketServer.getSocketsByMessageProcessor(this);
+    for (let socket of sockets) {
+      await this.write(data, socket);
+    }
+  }
+
   async write(data, destination) {
+    data = await this._onWrite(data);
+
     let socketIds = [];
     assert(data instanceof Buffer);
     if (destination instanceof WebSocket) {
@@ -64,8 +84,7 @@ class MessageProcessor {
     for (let socketId of socketIds) {
       const socket = this.webSocketServer.getSocket(socketId);
       if (socket !== null) {
-        // Create the message frame, then iterate all the extensions and write to the socket
-        socket.
+        socket.write(data);
       }
     }
   }

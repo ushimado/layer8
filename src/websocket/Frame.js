@@ -3,10 +3,10 @@ const BitUtils = require('../utils/BitUtils');
 
 class Frame {
 
-  static create(payload, rsv1, rsv2, rsv3, opCode, isFin) {
-    assert(data instanceof Buffer);
+  static create(payload, rsv1, rsv2, rsv3, opcode, isFin) {
+    assert(payload instanceof Buffer);
 
-    const length = data.length;
+    const length = payload.length;
     let payloadSizeBytes, payloadByte1;
     if (length < 126) {
       payloadByte1 = length;
@@ -37,7 +37,7 @@ class Frame {
       byte1 += 1 << Frame.RSV3_BIT;
     }
 
-    byte1 += opCode;
+    byte1 += opcode;
 
     header[0] = byte1;
     header[1] = payloadByte1;
@@ -100,6 +100,8 @@ class Frame {
         this.__payload[i] ^= maskingKey[maskIndex];
       }
     }
+
+    this.buffer = buffer;
   }
 
   get payload() {
@@ -126,5 +128,15 @@ Frame.PAYLOAD_SIZE_EXT_SMALLER = 126;
 Frame.PAYLOAD_SIZE_EXT_LARGER = 127;
 
 Frame.MAX_SIZE_16_BIT = (1 << 16) - 1;
+
+Frame.OPCODE_CONTINUATION_FRAME = 0;
+Frame.OPCODE_TEXT_FRAME = 1;
+Frame.OPCODE_BINARY_FRAME = 2;
+
+Frame.DATA_FRAME_OPCODES = new Set([
+  Frame.OPCODE_CONTINUATION_FRAME,
+  Frame.OPCODE_TEXT_FRAME,
+  Frame.OPCODE_BINARY_FRAME,
+]);
 
 module.exports = Frame;

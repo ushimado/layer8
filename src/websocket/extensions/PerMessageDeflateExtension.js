@@ -114,32 +114,38 @@ class PerMessageDeflateExtension extends ProtocolExtension {
       this.__rawDeflate = zlib.createDeflateRaw({
         windowBits: this.serverMaxWindowBits,
       });
+
+      this.__rawDeflate.on('data', (data) => {
+        const deflatedFrame = Frame.create(
+          data.slice(0, -4),      // Truncate the flush pattern before writing the frame
+          true,
+          this.__rawDeflate.frame.rsv2,
+          this.__rawDeflate.frame.rsv3,
+          this.__rawDeflate.frame.opcode,
+          this.__rawDeflate.frame.isFin,
+        )
+        this.__rawDeflate.resolve(deflatedFrame);
+      });
+      this.__rawDeflate.on('error', () => {
+        this.__rawDeflate.reject();
+      });
     }
 
     const p = new Promise((resolve, reject) => {
       // Apply the callback handler each time, to account for the new promise object
-      this.__rawInflate.on('data', (data) => {
-        const deflatedFrame = Frame.create(
-          data,
-          true,
-          frame.rsv2,
-          frame.rsv3,
-          frame.opcode,
-          frame.isFin,
-        )
-        resolve(deflatedFrame);
-      });
-      this.__rawInflate.on('error', () => {
-        reject();
-      });
-
+      this.__rawDeflate.resolve = resolve;
+      this.__rawDeflate.reject = reject;
+      this.__rawDeflate.frame = frame;
       this.__rawDeflate.write(frame.payload);
       this.__rawDeflate.flush(zlib.Z_SYNC_FLUSH, () => {
         if (!this.__rawDeflate) {
           return;
         }
 
-        if (frame.isFin && this.options[PerMessageDeflateExtension.SERVER_NO_CONTEXT_TAKEOVER_OPTION]) {
+        if (
+          frame.isFin &&
+          this.options[PerMessageDeflateExtension.SERVER_NO_CONTEXT_TAKEOVER_OPTION]
+        ) {
           this.__rawDeflate.close();
           this.__rawDeflate = null;
         }
@@ -157,25 +163,27 @@ class PerMessageDeflateExtension extends ProtocolExtension {
         this.__rawInflate = zlib.createInflateRaw({
           windowBits: this.clientMaxWindowBits,
         });
+        this.__rawInflate.on('data', (data) => {
+          const inflatedFrame = Frame.create(
+            data,
+            this.__rawInflate.frame.rsv1,
+            this.__rawInflate.frame.rsv2,
+            this.__rawInflate.frame.rsv3,
+            this.__rawInflate.frame.opcode,
+            this.__rawInflate.frame.isFin,
+          )
+          this.__rawInflate.resolve(inflatedFrame);
+        });
+        this.__rawInflate.on('error', () => {
+          this.__rawInflatereject();
+        });
       }
 
       const p = new Promise((resolve, reject) => {
         // Apply the callback handler each time, to account for the new promise object
-        this.__rawInflate.on('data', (data) => {
-          const inflatedFrame = Frame.create(
-            data,
-            frame.rsv1,
-            frame.rsv2,
-            frame.rsv3,
-            frame.opcode,
-            frame.isFin,
-          )
-          resolve(inflatedFrame);
-        });
-        this.__rawInflate.on('error', () => {
-          reject();
-        });
-
+        this.__rawInflate.resolve = resolve;
+        this.__rawInflate.reject = reject;
+        this.__rawInflate.frame = frame;
         this.__rawInflate.write(frame.payload);
         if (frame.isFin === true) {
           this.__rawInflate.write(PerMessageDeflateExtension.FLUSH_PATTERN);
@@ -192,6 +200,9 @@ class PerMessageDeflateExtension extends ProtocolExtension {
 
       return p;
     }
+
+    // No compression on the frame, just return it as-is
+    return frame;
   }
 
   _serializeOptions() {

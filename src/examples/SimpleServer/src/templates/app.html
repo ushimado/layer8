@@ -4,15 +4,16 @@
     <title>Demo web application</title>
   </head>
   <body>
-    <div>
+    <h2>
       Welcome to the app, here's your information:
-    </div>
-    <div id="userInfo">
-    </div>
-    <div id="hobbies">
-    </div>
-    <div id="hobby">
-    </div>
+    </h2>
+    <div id="userInfo"></div>
+    <div id="hobbies"></div>
+    <div id="hobby"></div>
+    <h2>
+      Ticker data push:
+    </h2>
+    <div id="ticker"></div>
     <script type="text/javascript">
       (
         () => {
@@ -31,11 +32,15 @@
           };
 
           var webSocket = new WebSocket("ws://localhost:8889/ticker?auth_token=" + authToken);
-          webSocket.onopen = function (event) {
-            console.log("Websocket open");
+          webSocket.onopen = (event) => {
             webSocket.send(JSON.stringify({
-              message: 'First message!'
+              message: 'Client is saying hello!'
             }));
+          };
+          webSocket.onmessage = (event) => {
+            var message = JSON.parse(event.data).message;
+            var tickerDiv = document.getElementById('ticker');
+            tickerDiv.innerHTML = message;
           };
 
           var requestHobbyInfo = hobbyId => {

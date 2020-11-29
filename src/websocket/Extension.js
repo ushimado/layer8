@@ -1,5 +1,6 @@
 const ParseError = require('../errors/ParseError');
 const DelimitedStringListAccessor = require('../accessors/DelimitedStringListAccessor');
+const assert = require('assert');
 
 class Extension {
 
@@ -13,13 +14,22 @@ class Extension {
         name = part;
       } else {
         const optionParts = part.split('=');
+        let optionPart0 = optionParts[0].trim();
         if (optionParts.length === 1) {
-          options[optionParts[0]] = true;
+          options[optionPart0] = true;
         } else {
           if (optionParts.length > 2) {
             throw new ParseError(`Invalid extension option ${extension}`);
           }
-          options[optionParts[0]] = optionParts[1];
+          let optionPart1 = optionParts[1].trim();
+          if (optionPart1.startsWith('"') && optionPart1.endsWith('"')) {
+            // Perform unquoting
+            assert(optionPart1.length > 2);
+
+            optionPart1 = optionPart1.slice(1, -1);
+          }
+
+          options[optionPart0] = optionPart1;
         }
       }
     });

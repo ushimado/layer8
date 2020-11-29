@@ -10,8 +10,17 @@ class Headers {
 
   add(header) {
     assert(header instanceof Header);
-    this.__headerByName[header.key.toLowerCase()] = header;
-    this.__headers.push(header);
+    const headerKey = header.key.toLowerCase();
+
+    if (headerKey in this.__headerByName) {
+      let prevHeader = this.__headerByName[headerKey];
+
+      // This bundling may be non-standard, but it works well for the extensions
+      prevHeader.value = [prevHeader.value, header.value].join(', ')
+    } else {
+      this.__headerByName[headerKey] = header;
+      this.__headers.push(header);
+    }
   }
 
   get(key) {
