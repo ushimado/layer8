@@ -2,6 +2,11 @@ const ParseError = require('../errors/ParseError');
 const Endpoint = require('../Endpoint');
 const assert = require('assert');
 
+/**
+ * Represents the request line of the incoming request message.
+ *
+ * @class RequestLine
+ */
 class RequestLine {
 
   static parse(data) {
@@ -38,6 +43,14 @@ class RequestLine {
     );
   }
 
+  /**
+   * Creates an instance of RequestLine.
+   *
+   * @param {String} method - One of Endpoint.METHODS
+   * @param {URL} url - The request URL including the query string, etc.
+   * @param {String} protocol - The protocol being used
+   * @memberof RequestLine
+   */
   constructor(method, url, protocol) {
     assert(Endpoint.METHODS.has(method));
     assert(url instanceof URL);

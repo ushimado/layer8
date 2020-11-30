@@ -8,12 +8,27 @@ const assert = require('assert');
  */
 class RequestBuffer {
 
+  /**
+   * Creates an instance of RequestBuffer.
+   *
+   * @param {Number} [maxLength=RequestBuffer.DEFAULT_MAX_LENGTH] - Establishes the maximum length
+   * of the request which will be buffered.
+   * @memberof RequestBuffer
+   */
   constructor(maxLength=RequestBuffer.DEFAULT_MAX_LENGTH) {
     this.maxLength = maxLength;
     this.data = [];
     this.length = 0;
   }
 
+  /**
+   * Ingests a buffer and returns either a completed Request object or null if the terminating
+   * sequences has not been encountered.
+   *
+   * @param {Buffer} buffer
+   * @returns
+   * @memberof RequestBuffer
+   */
   ingest(buffer) {
     assert(buffer instanceof Buffer);
 

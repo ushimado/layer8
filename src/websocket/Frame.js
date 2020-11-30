@@ -1,8 +1,27 @@
 const assert = require('assert');
 const BitUtils = require('../utils/BitUtils');
+const ParseError = require('../errors/ParseError');
 
+/**
+ * Represents a websocket protocol frame.
+ *
+ * @class Frame
+ */
 class Frame {
 
+  /**
+   * Creates a Frame instance from the specified payload and options.
+   *
+   * @static
+   * @param {Buffer} payload
+   * @param {Boolean} rsv1 - Reserved bit 1
+   * @param {Boolean} rsv2 - Reserved bit 2
+   * @param {Boolean} rsv3 - Reserved bit 3
+   * @param {Number} opcode - Operation code
+   * @param {Boolean} isFin - Frame represents the final data frame in a message
+   * @returns
+   * @memberof Frame
+   */
   static create(payload, rsv1, rsv2, rsv3, opcode, isFin) {
     assert(payload instanceof Buffer);
 
@@ -53,10 +72,21 @@ class Frame {
     return new Frame(Buffer.concat([header, payload]));
   }
 
+  /**
+   * Creates an instance of Frame from a buffer which represents a complete websocket protocol
+   * frame.
+   *
+   * @param {Buffer} buffer
+   * @returns {Frame}
+   * @memberof Frame
+   */
   constructor(buffer) {
     assert(buffer instanceof Buffer);
-    const byte1 = buffer[0];
+    if (buffer.length < 2) {
+      throw new ParseError("Frame too small");
+    }
 
+    const byte1 = buffer[0];
     this.isFin = BitUtils.isBitSet(byte1, Frame.FIN_BIT);
     this.rsv1 = BitUtils.isBitSet(byte1, Frame.RSV1_BIT);
     this.rsv2 = BitUtils.isBitSet(byte1, Frame.RSV2_BIT);
@@ -78,11 +108,17 @@ class Frame {
     );
 
     if (firstPayloadSize === Frame.PAYLOAD_SIZE_EXT_SMALLER) {
+      if (buffer.length < 4) {
+        throw new ParseError("Frame too small");
+      }
       this.payloadSize = BitUtils.ntoh(buffer, 2, 2);
       // 16 bits of payload size
       payloadOffset += 2;
     } else if (firstPayloadSize === Frame.PAYLOAD_SIZE_EXT_LARGER) {
       // 64 bits of payload size
+      if (buffer.length < 10) {
+        throw new ParseError("Frame too small");
+      }
       payloadOffset += 8;
       this.payloadSize = BitUtils.ntoh(buffer, 2, 8);
     } else {
@@ -90,9 +126,15 @@ class Frame {
     }
 
     this.__payload = buffer.slice(payloadOffset);
+    if (this.__payload.length !== this.payloadSize) {
+      throw new ParseError('Frame payload does not match reported payload size');
+    }
 
     if (this.isMasked === true) {
       const keyLength = 4;
+      if (buffer.length - 1 < payloadOffset) {
+        throw new ParseError("Frame too small");
+      }
       const maskingKey = buffer.slice(payloadOffset-keyLength, payloadOffset);
 
       for (let i = 0; i < this.__payload.length; i++) {
@@ -104,6 +146,12 @@ class Frame {
     this.buffer = buffer;
   }
 
+  /**
+   * Returns the underlying payload as a slice of the entire frame buffer.  Does not return a copy.
+   *
+   * @readonly
+   * @memberof Frame
+   */
   get payload() {
     return this.__payload;
   }
