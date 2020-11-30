@@ -71,7 +71,8 @@ class WebSocket {
         // a complete message emerges
         const result = this.frameBuffer.ingest(frame);
         if (result !== null) {
-          await this.messageProcessor._onRead(this.session, this, result);
+          const modifiedData = await this.messageProcessor._onRead(this.session, this, result);
+          return this.messageProcessor.onRead(this.session, this, modifiedData);
         }
       } else {
         // Something else arrived...  If in verbose mode, log it.

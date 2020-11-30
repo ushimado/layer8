@@ -1,13 +1,29 @@
 const assert = require('assert');
 const Header = require('./Header');
 
+/**
+ * Represents a collection of HTTP headers
+ *
+ * @class Headers
+ */
 class Headers {
 
+  /**
+   * Creates an instance of Headers.
+   *
+   * @memberof Headers
+   */
   constructor() {
     this.__headerByName = {};
     this.__headers = [];
   }
 
+  /**
+   * Adds a Header instance to the collection
+   *
+   * @param {Header} header
+   * @memberof Headers
+   */
   add(header) {
     assert(header instanceof Header);
     const headerKey = header.key.toLowerCase();
@@ -23,6 +39,13 @@ class Headers {
     }
   }
 
+  /**
+   * Returns a Header instance referenced by case-insensitive name, or undefined if not found.
+   *
+   * @param {String} key - Case insensitive header name
+   * @returns
+   * @memberof Headers
+   */
   get(key) {
     const lowerKey = key.toLowerCase();
     if (lowerKey in this.__headerByName) {
@@ -32,6 +55,12 @@ class Headers {
     return undefined;
   }
 
+  /**
+   * Serializes headers to a string for use in an HTTP response
+   *
+   * @returns {String}
+   * @memberof Headers
+   */
   serialize() {
     return this.__headers.map(header => header.serialize()).join('');
   }

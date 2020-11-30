@@ -8,14 +8,14 @@ class MessageProcessor {
   /**
    * Creates an instance of MessageProcessor.
    *
-   * @param {string} endpoint - The endpoint this message processor will be servicing.
-   * @param {string} [sessionKey=null] - If a session is present, this key will link the value to
+   * @param {String} endpoint - The endpoint this message processor will be servicing.
+   * @param {String} [sessionKey=null] - If a session is present, this key will link the value to
    * the connected socket.  As an example: 'accountId' - this will get the value keyed by
    * 'accountId' on the session object, and associate it with the socket id.  The message processor
    * can then reference the value when writing data to the socket, instead of the socket itself.
    * This makes adds a level of convenience for the application layer, which frees it from the
    * burden of tracking sockets.
-   * @param {boolean} [kickDuplicateSessionKey=false] - If true, any client which has authenticated
+   * @param {Boolean} [kickDuplicateSessionKey=false] - If true, any client which has authenticated
    * with the same ID as an already authenticated client, will force the old authenticated client's
    * socket to close.  This effectively allows for only a single user of a given ID to connect at
    * a given time.  If false (the default), a given ID can be associated with multiple sockets, and
@@ -31,6 +31,13 @@ class MessageProcessor {
     this.sessionKeyMapping = {};
   }
 
+  /**
+   * Binds the message processor instance to the websocket server instance.  This is done
+   * automatically by the websocket server when it registers the message processor.
+   *
+   * @param {*} webSocketServer
+   * @memberof MessageProcessor
+   */
   bind(webSocketServer) {
     assert(webSocketServer instanceof WebSocketServer);
     assert(
@@ -41,8 +48,17 @@ class MessageProcessor {
     this.webSocketServer = webSocketServer;
   }
 
+  /**
+   *
+   *
+   * @param {*} session
+   * @param {*} socket
+   * @param {*} data
+   * @returns
+   * @memberof MessageProcessor
+   */
   async _onRead(session, socket, data) {
-    return this.onRead(session, socket, data);
+    return data;
   }
 
   async _onWrite(data) {

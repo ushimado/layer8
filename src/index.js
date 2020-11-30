@@ -28,5 +28,7 @@ module.exports = {
   PerMessageDeflateExtension: require('./websocket/extensions/PerMessageDeflateExtension'),
   MessageProcessor: require('./websocket/MessageProcessor'),
   JSONMessageProcessor: require('./websocket/JSONMessageProcessor'),
+  EnumeratedMessageProcessor: require('./websocket/EnumeratedMessageProcessor'),
+  EnumeratedMessage: require('./websocket/EnumeratedMessage'),
 }
 

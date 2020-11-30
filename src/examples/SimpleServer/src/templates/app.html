@@ -34,13 +34,18 @@
           var webSocket = new WebSocket("ws://localhost:8889/ticker?auth_token=" + authToken);
           webSocket.onopen = (event) => {
             webSocket.send(JSON.stringify({
-              message: 'Client is saying hello!'
+              type: 'TEXT_MESSAGE',
+              body: {
+                text: 'Hello server, I am the client!'
+              }
             }));
           };
           webSocket.onmessage = (event) => {
-            var message = JSON.parse(event.data).message;
-            var tickerDiv = document.getElementById('ticker');
-            tickerDiv.innerHTML = message;
+            const message = JSON.parse(event.data);
+            if (message.type === 'TEXT_MESSAGE') {
+              var tickerDiv = document.getElementById('ticker');
+              tickerDiv.innerHTML = message.body.text;
+            }
           };
 
           var requestHobbyInfo = hobbyId => {

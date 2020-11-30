@@ -1,21 +1,29 @@
-const { JSONMessageProcessor } = require("layer8");
+const {
+  EnumeratedMessageProcessor,
+  EnumeratedMessage
+} = require("layer8");
 const SessionService = require('../services/SessionService');
 
-class TickerMessageProcessor extends JSONMessageProcessor {
+class TickerMessageProcessor extends EnumeratedMessageProcessor {
   constructor() {
     super('/ticker', 'accountId', true);
 
     setInterval(
       () => {
         const index = Math.floor(Math.random() * TickerMessageProcessor.RANDOM_MESSAGES.length);
-        this.broadcast(
+        this.broadcast(new EnumeratedMessage(
+          'TEXT_MESSAGE',
           {
-            message: TickerMessageProcessor.RANDOM_MESSAGES[index]
-          }
-        );
+            text: TickerMessageProcessor.RANDOM_MESSAGES[index]
+          },
+        ));
       },
       3000
     );
+  }
+
+  static onTextMessage(session, socket, body) {
+    console.log(`Client ${session.user.email} received a text message:\n${body.text}`)
   }
 
   async onConnect(session, socket) {
@@ -26,14 +34,13 @@ class TickerMessageProcessor extends JSONMessageProcessor {
     console.log(`Client ${session.user.email} disconnected from websocket server`)
   }
 
-  async onRead(session, socket, data) {
-    console.log(`Client ${session.user.email} sent a message`)
-    console.log(data);
-  }
-
   async authenticate(token) {
     // Will return null if the token is not authenticated
     return SessionService.getByToken(token)
+  }
+
+  get messageHandlerMapping() {
+    return TickerMessageProcessor.MESSAGE_HANDLER_MAPPING;
   }
 }
 
@@ -49,6 +56,10 @@ TickerMessageProcessor.RANDOM_MESSAGES = [
   "Look at the moon, it looks like cheese!",
   "Can you spot the rabbit in the moon?",
   "I'm going to visit a cow farm today, how about you?",
-]
+];
+
+TickerMessageProcessor.MESSAGE_HANDLER_MAPPING = {
+  TEXT_MESSAGE: TickerMessageProcessor.onTextMessage,
+};
 
 module.exports = TickerMessageProcessor;

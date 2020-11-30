@@ -8,7 +8,7 @@ class JSONMessageProcessor extends MessageProcessor {
     const jsonString = data.toString();
     const jsonData = JSON.parse(jsonString);
 
-    return this.onRead(session, socket, jsonData);
+    return jsonData;
   }
 
   async _onWrite(data) {
