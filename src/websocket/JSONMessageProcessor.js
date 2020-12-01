@@ -1,14 +1,19 @@
 const MessageProcessor = require('./MessageProcessor');
 const assert = require('assert');
+const { exception } = require('console');
+const ParseError = require('../errors/ParseError');
 
 class JSONMessageProcessor extends MessageProcessor {
 
   async _onRead(session, socket, data) {
     assert(data instanceof Buffer);
     const jsonString = data.toString();
-    const jsonData = JSON.parse(jsonString);
-
-    return jsonData;
+    try {
+      const jsonData = JSON.parse(jsonString);
+      return jsonData;
+    } catch(e) {
+      throw new ParseError('Error during JSON deserialization');
+    }
   }
 
   async _onWrite(data) {

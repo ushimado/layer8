@@ -71,8 +71,24 @@ class WebSocket {
         // a complete message emerges
         const result = this.frameBuffer.ingest(frame);
         if (result !== null) {
-          const modifiedData = await this.messageProcessor._onRead(this.session, this, result);
-          return this.messageProcessor.onRead(this.session, this, modifiedData);
+          try {
+            const [ modifiedData, error ] = await this.messageProcessor._onRead(
+              this.session, this, result
+            ).then(
+              result => [ result, null]
+            ).catch(
+              e => [ null, e]
+            );
+            if (error !== null) throw error;
+
+            return this.messageProcessor.onRead(this.session, this, modifiedData);
+          } catch(e) {
+            console.debug(`${this.getLogHeader()}Received an unprocessable message, server initiating disconnect`);
+            if (this.verbose === true) {
+              console.debug(e);
+            }
+            this.socket.end();
+          }
         }
       } else {
         // Something else arrived...  If in verbose mode, log it.
@@ -92,7 +108,14 @@ class WebSocket {
       frame = await extension.onWrite(frame);
     }
 
-    this.socket.write(frame.buffer);
+    try {
+      this.socket.write(frame.buffer);
+    } catch(e) {
+      if (e.code !== 'ERR_STREAM_WRITE_AFTER_END') {
+        // Closing connection if error was unrelated to the connection being closed
+        this.socket.end();
+      }
+    }
   }
 
   async onClose() {
