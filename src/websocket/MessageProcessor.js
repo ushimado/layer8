@@ -124,7 +124,16 @@ class MessageProcessor {
       const key = session[this.sessionKey];
       if (key in this.sessionKeyMapping) {
         if (this.kickDuplicateSessionKey === true) {
-          // TODO: Disconnect the old ID
+          const oldSocketIds = [...this.sessionKeyMapping[key].values()];
+          assert(oldSocketIds.length === 1);
+          const server = this.webSocketServer;
+          for (let socketId of oldSocketIds) {
+            const socket = this.webSocketServer.getSocket(socketId);
+            if (server.verbose === true) {
+              console.debug(`${socket.getLogHeader()}Client kicked because user logged in with same sessionKey`);
+            }
+            socket.socket.end();
+          }
 
           this.sessionKeyMapping[key] = new Set([socket.id]);
         } else {

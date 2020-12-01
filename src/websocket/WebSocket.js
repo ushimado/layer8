@@ -55,7 +55,7 @@ class WebSocket {
           this.session = session;
           this.messageProcessor = messageProcessor;
 
-          this.messageProcessor.onConnect(this.session, this);
+          this.messageProcessor._onConnect(this.session, this);
         }
       }
     } else {
@@ -128,7 +128,7 @@ class WebSocket {
     // disconnect during handshake etc, won't cause the message processor onDisconnect to fire
     // since the onConnect would never have fired.
     if (this.request !== null) {
-      this.messageProcessor.onDisconnect(this.session, this);
+      this.messageProcessor._onDisconnect(this.session, this);
     }
   }
 
