@@ -1,6 +1,6 @@
 {
   "name": "layer8",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Layer8 provides a powerful RESTful web application framework as well as websocket framework, with features such as integrated authentication.",
   "main": "./src/index.js",
   "scripts": {

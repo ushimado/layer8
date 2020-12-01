@@ -1,5 +1,5 @@
 # Layer8
-An organized yet versatile web services framework (built on top of Koa).
+An organized yet versatile framework for RESTful web services and websocket services.
 
 ## Key features
 - Designed around RESTful endpoints
@@ -7,14 +7,19 @@ An organized yet versatile web services framework (built on top of Koa).
 - Thorough input data validation
 - Organized routing/controller setup
 - Pre/post execution hooks for transaction code
+- Authenticate and service websocket clients
+- Convenient JSON based protocol/framework for websocket messaging
+- Broadcast data to all connected websocket clients
 
 ## Philosophy
-When designing Layer8, the goal was to standardize the process of adding RESTful endpoints while eliminating a lot of the boilerplate necessary to accomplish this with frameworks such as Koa or Express.  Extending web services should be easy, with as little boilerplate as possible, allowing the developer to focus on business logic rather than framework.
+When designing Layer8, the goal was to standardize the process of adding RESTful endpoints while eliminating a lot of the boilerplate necessary to accomplish this with frameworks such as Koa or Express.  Extending web services should be easy, with as little boilerplate as possible, allowing the developer to focus on business logic rather than framework.  Additionally, robust data validation is crucial to maintaining a secure and stable environment.  Layer8 aims to provide an excellent data validation framework for both web and websocket services, alleviating the burden on the developer to come up with a solution.
 
 ## Example application
 Most of the functionality provided in Layer8 is demonstrated in the [example application](https://github.com/hashibuto/layer8/tree/master/src/examples/SimpleServer).  The application is NOT meant to be realistic from a best practices standpoint (serving static assets within the web application), but rather a full demonstration of what Layer8 is capable of, with working examples.
 
-## The server
+# Web services
+
+## The web server
 Layer8 is built around [Koa](https://www.npmjs.com/package/koa) which has served as a reliable base for writing web services.  Below is a sample illustrating the most basic server configuration:
 
 ```
@@ -414,3 +419,161 @@ Request headers and cookies are available on the Koa context object, please cons
 
 ## Helper utilities
 Layer8 comes with one basic set of helper utilities used to facilitate authentication and secure password storage.  These are the `HashUtils`.  See both the [SessionService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/SessionService.js) and [UserService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/UserService.js) in the example application for examples on using the `HashUtils` for password hash and salting as well as verification, and session token creation.
+
+# Websocket services
+
+## Websocket server
+
+The websocket server is designed to be flexible and support multiple endpoints.  Below is a sample of the server's invocation:
+
+```
+const { WebSocketServer } = require('layer8');
+
+const webSocketServer = new WebSocketServer(
+  [
+    new MovementMessageProcessor(),
+
+  ],
+  [
+    PerMessageDeflateExtension,
+  ],
+  true,
+);
+webSocketServer.listen(9999);
+```
+
+Let's break down the invocation above:
+
+```
+constructor(messageProcessors, protocolExtensions=null, verbose=false)
+```
+
+Message processors can be though of as similar to controllers.  They service a given endpoint and expose a standard interface for bidirectional communication.  We'll get more into the specifics of message processors below.
+
+Protocol extensions are extensions to the websocket protocol which behave as middleware, operating at the websocket frame level, potentially bidirectionally.  In this example we've added the `PerMessageDeflateExtension` which allows for compression and decompression of websocket frames (supported by default by most web browsers).  Supplying this extension will allow the server to use it, if it is requested by the client, but only if the client also supports it.  Extensions work on an agreement basis, meaning that both sides must support the extension in order for it to be used.
+
+The `verbose` flag is useful for debugging in that it will generate a lot of useful debug log messages.
+
+After construction, we invoke the `listen` method on the server, which binds to a given port (in this case `9999`) and listens for incoming connections.
+
+## Message processors
+A message processor is similar to a web service controller, in that it services a given endpoint.  In the web browser, when initiating a websocket connection, an endpoint is provided in the request.  This endpoint indicates to the websocket server, which message processor to pair the connection with.  If the endpoint is not mapped to a message processor the call will be rejected, otherwise all subsequent data will be received by the message processor matching the endpoint.
+
+In Layer8, we have 3 basic types of message processor, which can be subclassed by the developer when implementing their own message processor.
+
+- `MessageProcessor` - The most basic type of processor which is used to transmit unstructured messages (each message is a `Buffer` of data)
+- `JSONMessageProcessor` - An unstructured JSON message processor whereby the server can send and receive JSON data.  From the developer's perspective, a message is just a JSON object (this processor will take care of (de)serialization)
+- `EnumeratedMessageProcessor` - A structured message processor which provides a framework for message type enumeration over an underlying JSON based transport system.  This is the preferred (Layer8) way of developing websocket services and an example will be outlined below.
+
+The `MessageProcessor` which is the base class for all message processors must be constructed as follows:
+```
+constructor(endpoint, sessionKey=null, kickDuplicateSessionKey=false)
+```
+
+Whereby the `endpoint` dictates what endpoint the message processor will service (connecting clients will be directed based on requested endpoint).
+`sessionKey` if provided, allows the software to reference a connected socket by a mappable value on the session.  For instance, if a client connects and authenticates, it may have a session that looks like this:
+
+```
+{
+  username: foo@bar.com,
+  accountId: 129393,
+  firstName: 'Fern',
+  lastName: 'Oobleck',
+  token: 'skjleoieijolkJFJklew32kjldfs'
+}
+```
+
+Providing a `sessionKey` of `"accountId"`, will create a mapping between the connected socket for this user, and the users's account ID (`129393`).  With this mapping, instead of referencing the `WebSocket` instance directly, the message processor can write messages to `129393`, and the corresponding socket will automatically be looked up by that value on the session.  This can be very convenient for decoupling the actual socket from the user within the application.
+
+Lastly `kickDuplicateSessionKey` is a boolean which, when set, indicates that any duplicate authenticating user (based on `sessionKey`), will cause a previously connected socket to be disconnected.  This may or may not be desirable depending on the specific use case.  If multiple authenticated users are connected and messages are sent based on `sessionKey`, they will all receive the same message.  Developers who wish to allow multiple connections by the same user, and maintain individuality concerning messaging, must always reference the socket directly, as opposed to the `sessionKey`.
+
+When implementing a `JSONMessageProcessor` or `MessageProcessor`, the developer would subclass either base class, and implement the following methods:
+
+```
+  async onConnect(session, socket) {
+  }
+
+  async onDisconnect(session, socket) {
+  }
+
+  async onRead(session, socket, data) {
+  }
+```
+
+Handler methods in the message processor will only be invoked once a websocket handshake has successfully taken place.  Clients that abort during handshake will not be directed to the message processor, thus there will always be a corresponding `onDisconnect` for a given `onConnect`.
+
+`onConnect` will be called once a client has established a connection and completed handshake.  It bears the arguments `session` and `socket` which correspond to the developer defined session (which is an empty `{}` if no authentication is specified), and `WebSocket` instance, used for direct communication.
+
+`onDisconnect` is called whenever a client disconnects (regardless of which side initiated the disconnection), and `onRead` is called whenever a complete data message is received.  Fragmented messages are buffered until complete and then forwarded to the message processor.  See `FrameBuffer` for maximum buffering restrictions.
+
+The `EnumeratedMessageProcessor` is implemented slightly differently  The constructor and `onConnect` and `onDisconnect` signatures are the same, but the way messages are handled differs slightly.  Observe the following example taken partially from the example server:
+
+```
+const {
+  EnumeratedMessageProcessor,
+  EnumeratedMessage
+} = require("layer8");
+const SessionService = require('../services/SessionService');
+
+class TickerMessageProcessor extends EnumeratedMessageProcessor {
+  constructor() {
+    super('/ticker', 'accountId', true);
+  }
+
+  static onTextMessage(session, socket, body) {
+    console.log(`Client ${session.user.email} received a text message:\n${body.text}`)
+  }
+
+  async onConnect(session, socket) {
+    console.log(`Client ${session.user.email} joined via websocket`)
+  }
+
+  async onDisconnect(session, socket) {
+    console.log(`Client ${session.user.email} disconnected from websocket server`)
+  }
+
+  async authenticate(token) {
+    // Will return null if the token is not authenticated
+    return SessionService.getByToken(token)
+  }
+
+  get messageHandlerMapping() {
+    return TickerMessageProcessor.MESSAGE_HANDLER_MAPPING;
+  }
+}
+
+TickerMessageProcessor.MESSAGE_HANDLER_MAPPING = {
+  TEXT_MESSAGE: TickerMessageProcessor.onTextMessage,
+};
+
+module.exports = TickerMessageProcessor;
+```
+
+You will notice the property `messageHandlerMapping` which returns `TickerMessageProcessor.MESSAGE_HANDLER_MAPPING`.  This property returns a mapping between any given message type, and corresponding handler.  In this example we only have one registered message type, but a more sophisticated message processor may need to support multiple message types originating from the client.  This mapping allows the message processor to easily pick a handler method for a given message type.  Consider the following JSON payload:
+
+```
+{
+  "type": "TEXT_MESSAGE",
+  "body": {
+    "text": "Hello there server"
+  }
+}
+```
+
+This message would automatically be deserialized to a `EnumeratedMessage` object, which has a couple of standard properties, such as `type`, and `body`.  The `EnumeratedMessageProcessor` uses the `type` property in order to determine to which handler to route the message.  In the case above, the `body` portion is then routed to the static handler `TickerMessageProcessor.onTextMessage`.
+
+Handlers can be synchronous or asynchronous.  The `EnumeratedMessageProcessor` will always attempt to wait on an asynchronous handler.
+
+```
+static async onTextMessage(session, socket, body) {
+}
+```
+
+Similar to the `MessageProcessor`'s `onRead` method, each handler receives a `session`, `socket`, and instead of `data`, `body` represents the `body` portion of the `EnumeratedMessage` which will be automatically deserialized from a JSON string.
+
+## Authentication
+Authentication is handled using the `async authenticate(token)` method.  The client would provide an authentication token in the endpoint as a query argument.  Specifically `?auth_token={authentication token}`.  The `authenticate` method will then receive this token and authentication must be implemented by the developer.  A `null` return value indicates failed authentication and the connection will be closed by the server.
+
+## Protocol extensions
+
+At present, Layer8 only ships with `PerMessageDeflateExtension` which is used to support the `per_message_deflate` extension, enabling frame compression.  Additional extensions can be authored by the developer by subclassing the `ProtocolExtension` class.
