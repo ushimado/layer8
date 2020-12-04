@@ -1,5 +1,6 @@
 const NotImplementedError = require('./errors/NotImplementedError');
 const Endpoint = require('./Endpoint');
+const AbstractDataDefinition = require('./AbstractDataDefinition');
 const assert = require('assert');
 
 class Controller {
@@ -7,12 +8,22 @@ class Controller {
   /**
    * Creates an instance of Controller.
    *
+   * @param {class} dataDefinition - The data definition class used to validate and complete
+   * data consumed by this controller.
    * @param {string} basePath
    * @param {Array} endpoints
-   * @param {Array} middlewares - An array of middlewares to apply to the controller. (Optional)
    * @memberof Controller
    */
-  constructor(basePath, endpoints, middlewares) {
+  constructor(dataDefinition, basePath, endpoints, middlewares) {
+    if (typeof dataDefinition === 'function') {
+      const dataDefinitionInst = new dataDefinition();
+      assert(dataDefinitionInst instanceof AbstractDataDefinition);
+      this.__dataDefinitionInst = dataDefinitionInst;
+    } else {
+      assert(dataDefinition === null);
+      this.__dataDefinitionInst = null;
+    }
+
     assert(Array.isArray(endpoints), 'Argument must be an array of endpoint objects');
     assert(endpoints.length > 0, 'A controller must expose at least one endpoint');
 
@@ -28,126 +39,78 @@ class Controller {
 
     this.basePath = basePath;
     this.endpoints = endpoints;
+    this.__middlewares = middlewares === undefined ? [] : middlewares;
+    assert(Array.isArray(this.__middlewares));
+  }
 
-    if (middlewares === undefined)
-      this.middlewares = [];
-    else
-      this.middlewares = middlewares;
+  get controllerProcessors() {
+    return this.__middlewares;
+  }
+
+  get dataDefinition() {
+    return this.__dataDefinitionInst;
   }
 
   /**
-   * Validates a GET index request and returns an array of validated data.
+   * Implements the GET method for any/all entities
    *
-   * @param ctx - The Koa context object.
-   * @param {Session} session - Session object or null if no session exists.
+   * @param {Object} session - The session object
+   * @param {Object} urlParams - Validated URL parameters
+   * @param {Object} queryArgs - Validated query arguments
    * @memberof Controller
-   * @returns {Array} - Validated arguments which will be passed to the execute method.
    */
-  async validateIndex(ctx, session) {
-    throw new NotImplementedError('The validateIndex method is not implemented');
+  async index(session, urlParams, queryArgs) {
+    throw new NotImplementedError('The index method is not implemented');
   }
 
   /**
-   * Executes the GET index request using the arguments provided by the validation method.
+   * Implements the GET method for a single entity
    *
-   * @param {Session} session
-   * @param {*} args - Arguments returned by the validation method.
+   * @param {Object} session - The session object
+   * @param {Object} urlParams - Validated URL parameters
+   * @param {Object} queryArgs - Validated query arguments
    * @memberof Controller
    */
-  async executeIndex(session, ...args) {
-    throw new NotImplementedError('The executeIndex method is not implemented');
+  async get(session, urlParams, queryArgs) {
+    throw new NotImplementedError('The get method is not implemented');
   }
 
   /**
-   * Validates a GET request and returns an array of validated data.
+   * Implements the POST method for one or more entities
    *
-   * @param ctx - The Koa context object.
-   * @param {Session} session - Session object or null if no session exists.
+   * @param {Object} session - The session object
+   * @param {Object} urlParams - Validated URL parameters
+   * @param {Object} queryArgs - Validated query arguments
+   * @param {Array} items - One or more items to be created
    * @memberof Controller
-   * @returns {Array} - Validated arguments which will be passed to the execute method.
    */
-  async validateGet(ctx, session) {
-    throw new NotImplementedError('The validateGet method is not implemented');
+  async post(session, urlParams, queryArgs, items) {
+    throw new NotImplementedError('The post method is not implemented');
   }
 
   /**
-   * Executes the GET request using the arguments provided by the validation method.
+   * Implements the PUT method for one or more entities
    *
-   * @param {Session} session
-   * @param {*} args - Arguments returned by the validation method.
+   * @param {Object} session - The session object
+   * @param {Object} urlParams - Validated URL parameters
+   * @param {Object} queryArgs - Validated query arguments
+   * @param {Array} items - One or more items to be modified
    * @memberof Controller
    */
-  async executeGet(session, ...args) {
-    throw new NotImplementedError('The executeGet method is not implemented');
+  async put(session, urlParams, queryArgs, items) {
+    throw new NotImplementedError('The put method is not implemented');
   }
 
   /**
-   * Validates a POST request and returns an array of validated data.
+   * Implements the DELETE method for a single entity
    *
-   * @param ctx - The Koa context object.
-   * @param {Session} session - Session object or null if no session exists.
-   * @memberof Controller
-   * @returns {Array} - Validated arguments which will be passed to the execute method.
-   */
-  async validatePost(ctx, session) {
-    throw new NotImplementedError('The validatePost method is not implemented');
-  }
-
-  /**
-   * Executes the POST request using the arguments provided by the validation method.
-   *
-   * @param {Session} session
-   * @param {*} args - Arguments returned by the validation method.
+   * @param {Object} session - The session object
+   * @param {Object} urlParams - Validated URL parameters
+   * @param {Object} queryArgs - Validated query arguments
    * @memberof Controller
    */
-  async executePost(session, ...args) {
-    throw new NotImplementedError('The executePost method is not implemented');
-  }
-
-  /**
-   * Validates a PUT request and returns an array of validated data.
-   *
-   * @param ctx - The Koa context object.
-   * @param {Session} session - Session object or null if no session exists.
-   * @memberof Controller
-   * @returns {Array} - Validated arguments which will be passed to the execute method.
-   */
-  async validatePut(ctx, session) {
-    throw new NotImplementedError('The validatePut method is not implemented');
-  }
-
-  /**
-   * Executes the PUT request using the arguments provided by the validation method.
-   *
-   * @param {Session} session
-   * @param {*} args - Arguments returned by the validation method.
-   * @memberof Controller
-   */
-  async executePut(session, ...args) {
-    throw new NotImplementedError('The executePut method is not implemented');
-  }
-
-  /**
-   * Validates a DELETE request and returns an array of validated data.
-   *
-   * @param ctx - The Koa context object.
-   * @param {Session} session - Session object or null if no session exists.
-   * @memberof Controller
-   * @returns {Array} - Validated arguments which will be passed to the execute method.
-   */
-  async validateDelete(ctx, session) {
-    throw new NotImplementedError('The validateDelete method is not implemented');
-  }
-
-  /**
-   * Executes the DELETE request using the arguments provided by the validation method.
-   *
-   * @param {Session} session
-   * @param {*} args - Arguments returned by the validation method.
-   * @memberof Controller
-   */
-  async executeDelete(session, ...args) {
-    throw new NotImplementedError('The executeDelete method is not implemented');
+  async delete(session, urlParams, queryArgs) {
+    throw new NotImplementedError('The delete method is not implemented');
   }
 
 }

@@ -1,5 +1,5 @@
 const ExtensionRequest = require('./ExtensionRequest');
-const DelimitedStringListAccessor = require('../accessors/DelimitedStringListAccessor');
+const ParseError = require('../errors/ParseError');
 const assert = require('assert');
 
 /**
@@ -10,7 +10,11 @@ const assert = require('assert');
 class ExtensionsRequest {
 
   static parse(data) {
-    const parts = ExtensionsRequest.EXTENSION_ACCESSOR.validate(data)
+    const parts = data.split(',').map(part => part.trim()).filter(part => part.length > 0);
+    if (parts.length === 0) {
+      throw new ParseError('Request must contain at least one extension');
+    }
+
     return new ExtensionsRequest(parts.map(part => ExtensionRequest.parse(part)));
   }
 
@@ -47,7 +51,5 @@ class ExtensionsRequest {
   }
 
 }
-
-ExtensionsRequest.EXTENSION_ACCESSOR = new DelimitedStringListAccessor(null, ',').trim().removeEmptyItems().minItems(0);
 
 module.exports = ExtensionsRequest;

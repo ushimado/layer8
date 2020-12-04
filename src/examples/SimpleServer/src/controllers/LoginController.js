@@ -3,67 +3,48 @@ const {
   Endpoint,
   ResponseObject,
   ErrorResponse,
-  Accessor,
   HashUtils,
   HTTPStatusCodes,
   JSONResponse,
   Cookie,
 } = require('layer8');
 const body = require('koa-body');
-const LoginAccessors = require('../api/LoginAccessors');
 const UserService = require('../services/UserService');
 const SessionService = require('../services/SessionService');
 const ErrorCodes = require('../ErrorCodes');
 const fs = require('fs');
 const path = require('path');
+const LoginEntityDef = require('../api/LoginEntityDef');
+const assert = require('assert');
 
 class LoginController extends Controller {
 
   constructor() {
     super(
+      LoginEntityDef,
       '/login',
       [
         new Endpoint('/', Endpoint.INDEX),
-        new Endpoint(
-          '/',
-          Endpoint.POST,
-          [
-            body(),
-          ]
-        ),
+        new Endpoint('/', Endpoint.POST).middlewares([body()]),
       ]
     );
   }
 
-  /**
-   * Returns the login page.
-   */
-  async validateIndex(ctx, session) {
-    return [];
-  }
-
-  async executeIndex(session) {
+  async index(session) {
     return new ResponseObject(
       fs.readFileSync(path.resolve(__dirname, '..', 'templates', 'login.html'))
     )
   }
 
-  async validatePost(ctx, session) {
-    return Accessor.validateAll(
-      ctx.request.body,
-      [
-        LoginAccessors.EMAIL,
-        LoginAccessors.PASSWORD,
-      ]
-    );
-  }
+  async post(session, urlParams, queryArgs, items) {
+    assert(items.length === 1);
+    const item = items[0];
 
-  async executePost(session, email, password) {
-    const user = UserService.getUserByEmail(email);
+    const user = UserService.getUserByEmail(item.email);
     if (user !== null) {
       // Check the password
       const saltedHash = HashUtils.generatePasswordHash(
-        password,
+        item.password,
         user.salt
       );
 

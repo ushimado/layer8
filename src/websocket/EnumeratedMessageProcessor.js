@@ -1,5 +1,6 @@
 const JSONMessageProcessor = require('./JSONMessageProcessor');
 const ParseError = require('../errors/ParseError');
+const NotImplementedError = require('../errors/NotImplementedError');
 const EnumeratedMessage = require('./EnumeratedMessage');
 const assert = require('assert');
 
@@ -87,7 +88,7 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
    * @memberof EnumeratedMessageProcessor
    */
   get messageHandlerMapping() {
-    throw Error('Not implemented');
+    throw new NotImplementedError();
   }
 }
 

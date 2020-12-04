@@ -1,3 +1,5 @@
+const NotImplementedError = require('../../errors/NotImplementedError');
+
 /**
  * Base class and interface for a protocol extension.
  *
@@ -29,7 +31,7 @@ class ProtocolExtension {
    * @returns {ProtocolExtension}
    */
   static createInstance(extension) {
-    throw new Error("Not implemented");
+    throw new NotImplementedError();
   }
 
   /**
@@ -40,7 +42,7 @@ class ProtocolExtension {
    * @returns {Frame} - If the input frame is to be modified, this must return a new Frame instance
    */
   async onWrite(frame) {
-    throw new Error('Not implemented')
+    throw new NotImplementedError();
   }
 
   /**
@@ -51,7 +53,7 @@ class ProtocolExtension {
    * @returns {Frame} - If the input frame is to be modified, this must return a new Frame instance
    */
   async onRead(frame) {
-    throw new Error('Not implemented')
+    throw new NotImplementedError();
   }
 
   /**
@@ -78,7 +80,7 @@ class ProtocolExtension {
    * @returns {String}
    */
   _serializeOptions() {
-    throw new Error("Not implemented");
+    throw new NotImplementedError();
   }
 }
 

@@ -1,36 +1,32 @@
 const {
-  Controller,
   Endpoint,
-  JSONResponse,
+  IntType,
  } = require('layer8');
-const AuthenticationService = require('../services/AuthenticationService');
-const HobbyAccessors = require('../api/HobbyAccessors');
+const AuthenticatedController = require('./AuthenticatedController');
 const assert = require('assert');
 
-class HobbyController extends Controller {
+class HobbyController extends AuthenticatedController {
+
+  static URL_PARAMS = {
+    id: new IntType().from(1),
+  };
 
   constructor() {
     super(
+      null,
       '/api/hobby',
       [
         new Endpoint('/', Endpoint.INDEX),
-        new Endpoint('/:id', Endpoint.GET),
-        new Endpoint('/:id', Endpoint.DELETE),
+        new Endpoint('/:id', Endpoint.GET).urlParams(HobbyController.URL_PARAMS),
+        new Endpoint('/:id', Endpoint.DELETE).urlParams(HobbyController.URL_PARAMS),
       ],
-      [
-        AuthenticationService.use,
-      ]
     );
   }
 
   /**
    * Returns a list of all the hobbies by name (without detailed information)
    */
-  async validateIndex(ctx, session) {
-    return [];
-  }
-
-  async executeIndex(session) {
+  async index(session, urlParams, queryArgs) {
     const hobbies = [];
     HobbyController.HOBBIES.forEach(hobby => {
       hobbies.push({
@@ -38,32 +34,20 @@ class HobbyController extends Controller {
         name: hobby.name,
       });
     })
-    return new JSONResponse(hobbies);
+    return hobbies;
   }
 
-  async validateGet(ctx, session) {
-    return [
-      HobbyAccessors.ID.validate(ctx.params),
-    ];
+  async get(session, urlParams, queryArgs) {
+    assert(urlParams.id in HobbyController.HOBBY_BY_ID, `ID ${urlParams.id} not found`);
+
+    return new HobbyController.HOBBY_BY_ID[urlParams.id];
   }
 
-  async executeGet(session, id) {
-    assert(id in HobbyController.HOBBY_BY_ID, `ID ${id} not found`);
+  async delete(session, urlParams, queryArgs) {
+    assert(urlParams.id in HobbyController.HOBBY_BY_ID, `ID ${urlParams.id} not found`);
+    delete HobbyController.HOBBY_BY_ID[urlParams.id];
 
-    return new JSONResponse(HobbyController.HOBBY_BY_ID[id]);
-  }
-
-  async validateDelete(ctx, session) {
-    return [
-      HobbyAccessors.ID.validate(ctx.params),
-    ]
-  }
-
-  async executeDelete(session, id) {
-    assert(id in HobbyController.HOBBY_BY_ID, `ID ${id} not found`);
-    delete HobbyController.HOBBY_BY_ID[id];
-
-    HobbyController.HOBBIES = HobbyController.HOBBIES.filter(hobby => hobby.id !== id);
+    HobbyController.HOBBIES = HobbyController.HOBBIES.filter(hobby => hobby.id !== urlParams.id);
   }
 }
 

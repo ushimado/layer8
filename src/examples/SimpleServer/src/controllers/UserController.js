@@ -2,35 +2,24 @@ const {
   Controller,
   Endpoint,
  } = require('layer8');
-const fs = require('fs');
-const path = require('path');
-const AuthenticationService = require('../services/AuthenticationService');
 const UserService = require('../services/UserService');
+const AutheticatedController = require('./AuthenticatedController');
 
-class UserController extends Controller {
+class UserController extends AutheticatedController {
 
   constructor() {
     super(
+      null,
       '/api/user',
       [
         new Endpoint('/', Endpoint.INDEX),
       ],
-      [
-        AuthenticationService.use,
-      ]
     );
   }
 
-  /**
-   * Returns user information for the currently authenticated user.
-   */
-  async validateIndex(ctx, session) {
-    return [];
-  }
-
-  async executeIndex(session) {
+  async index(session, urlParams, queryArgs) {
     const userId = session.user.id;
-    const user = UserService.getUserById(userId)
+    const user = UserService.getUserById(userId);
 
     return user;
   }

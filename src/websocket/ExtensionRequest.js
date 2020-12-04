@@ -1,5 +1,4 @@
 const ParseError = require('../errors/ParseError');
-const DelimitedStringListAccessor = require('../accessors/DelimitedStringListAccessor');
 const assert = require('assert');
 
 /**
@@ -19,7 +18,7 @@ class ExtensionRequest {
    * @memberof ExtensionRequest
    */
   static parse(extensionRequest) {
-    const parts = ExtensionRequest.OPTIONS_ACCESSOR.validate(extensionRequest);
+    const parts = extensionRequest.split(';').map(part => part.trim()).filter(part => part.length > 0);
 
     let name;
     const options = {};
@@ -66,7 +65,5 @@ class ExtensionRequest {
   }
 
 }
-
-ExtensionRequest.OPTIONS_ACCESSOR = new DelimitedStringListAccessor(null, ';').trimItems().removeEmptyItems().minItems(0);
 
 module.exports = ExtensionRequest;

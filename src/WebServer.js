@@ -4,6 +4,7 @@ const Endpoint = require('./Endpoint');
 const assert = require('assert');
 const ValidationError = require('./errors/ValidationError');
 const ResponseObject = require('./responseTypes/ResponseObject');
+const JSONResponse = require('./responseTypes/JSONResponse');
 
 class WebServer {
 
@@ -12,83 +13,77 @@ class WebServer {
    *
    * @param {Array} controllers - Array of controller instances which will be managed by this
    * server.
-   * @param {Array} middlewares - Array of top level middlewares which will be executed at the top
-   * level, prior to executing controller level middleware. (Optional)
-   * @param {function} onBeginExecution - Asynchronous method to be executed at the beginning
-   * of REST method execution (after validation).  (Optional)
-   * @param {function} onExecutionComplete - Asynchronous method to be executed after execution
-   * of the REST method completes. (Optional)
-   * @param {function} onExecutionFailure - Asynchronous method to be executed if the REST method
-   * throws an exception. (Optional)
-   * @param {Array} middlewares - An array of middlewares to use at the server level. (Optional)
    * @param {boolean} verbose - If true, verbose output is enabled
    * @memberof WebServer
    */
   constructor(
     controllers,
-    onBeginExecution,
-    onExecutionComplete,
-    onExecutionFailure,
-    middlewares,
     verbose=false,
   ) {
-    this.server = new Koa();
-    this.verbose = verbose;
+    const server = new Koa();
 
-    if (middlewares === undefined) {
-      middlewares = [];
-    }
-
-    middlewares.forEach(middleware => {
-      this.server.use(middleware);
-    });
-
-    if (this.verbose === true) {
+    if (verbose === true) {
       console.debug("Creating routings")
     }
 
     controllers.forEach(controller => {
       const router = new Router();
       router.prefix(controller.basePath);
-      controller.middlewares.forEach(middleware => {
+      controller.controllerProcessors.forEach(middleware => {
         router.use(middleware);
       });
 
       controller.endpoints.forEach(endpoint => {
-        if (this.verbose === true) {
+        if (verbose === true) {
           console.debug(`${controller.basePath} ${endpoint.method}`);
         }
         let routerMethodName, controllerValidateMethodName, controllerExecuteMethodName;
         if (endpoint.method === Endpoint.INDEX) {
           routerMethodName = 'get';
-          controllerValidateMethodName = 'validateIndex';
-          controllerExecuteMethodName = 'executeIndex';
+          controllerExecuteMethodName = 'index';
         } else if (endpoint.method === Endpoint.GET) {
           routerMethodName = 'get';
-          controllerValidateMethodName = 'validateGet';
-          controllerExecuteMethodName = 'executeGet';
+          controllerExecuteMethodName = 'get';
         } else if (endpoint.method === Endpoint.POST) {
           routerMethodName = 'post';
-          controllerValidateMethodName = 'validatePost';
-          controllerExecuteMethodName = 'executePost';
+          controllerExecuteMethodName = 'post';
         } else if (endpoint.method === Endpoint.PUT) {
           routerMethodName = 'put';
-          controllerValidateMethodName = 'validatePut';
-          controllerExecuteMethodName = 'executePut';
+          controllerExecuteMethodName = 'put';
         } else {
           assert(endpoint.method === Endpoint.DELETE, endpoint.method);
           routerMethodName = 'delete';
-          controllerValidateMethodName = 'validateDelete';
-          controllerExecuteMethodName = 'executeDelete';
+          controllerExecuteMethodName = 'delete';
         }
 
         router[routerMethodName](
-          endpoint.relativePath, ...endpoint.middlewares, async (ctx) => {
+          endpoint.relativePath, ...endpoint.processingMethods, async (ctx) => {
             const session = ctx.state.session === undefined ? null : ctx.state.session;
-            const validatedArgs = await controller[controllerValidateMethodName](
-              ctx,
-              session,
-            ).catch(e => {
+
+            let args;
+            try {
+              queryArgs = endpoint.processQueryArgs(ctx.request.query);
+              urlParams = endpoint.processUrlParams(ctx.params);
+
+              if (!Endpoint.METHODS_WITHOUT_PAYLOAD.has(endpoint.method)) {
+                // There could be a payload
+                let body = ctx.request.body;
+                if (!Array.isArray(body)) {
+                  body = [body];
+
+                }
+
+                let items;
+                if (controller.dataDefinition === null) {
+                  items = null;
+                } else {
+                  items = body.map(item => controller.dataDefinition.test(item));
+                }
+                args = [session, urlParams, queryArgs, items];
+              } else {
+                args = [session, urlParams, queryArgs];
+              }
+            } catch(e) {
               if (e instanceof ValidationError) {
                 this._createErrorResponse(ctx, 400, 'ValidationError', e.message);
               } else {
@@ -101,17 +96,12 @@ class WebServer {
                 );
               }
 
-              return null;
-            })
-
-            // null indicates that validation resulted in an error
-            if (validatedArgs === null) {
               return;
             }
 
-            if (onBeginExecution !== undefined) {
+            if (this.__onExecutionBegin !== null) {
               if (
-                await onBeginExecution(ctx, session)
+                await this.__onExecutionBegin(ctx, session)
                 .then(() => {
                   return true;
                 })
@@ -131,7 +121,7 @@ class WebServer {
             }
 
             let responseBody = await controller[controllerExecuteMethodName](
-              session, ...validatedArgs
+              ...args
             ).catch(async e => {
               this._createErrorResponse(
                 ctx,
@@ -140,10 +130,10 @@ class WebServer {
                 'An unexpected error occurred while executing the request'
               );
 
-              if (onExecutionFailure !== undefined) {
-                await onExecutionFailure(ctx, session, e)
+              if (this.__onExecutionFail !== null) {
+                await this.__onExecutionFail(ctx, session, e)
                 .catch(e => {
-                  console.log(e);
+                  console.error(e);
                 });
               }
 
@@ -157,22 +147,18 @@ class WebServer {
 
             if (responseBody instanceof ResponseObject) {
               responseBody.serialize(ctx);
-
-              // The default status is 404, only change it to 200 if it is still the default
-              // in order not to interfere with redirects.
-              if (ctx.status === 404) {
-                ctx.status = 200;
-              }
             } else {
+              // By default, wrap this in a JSONResponse object
               if (responseBody === undefined) {
-                responseBody = '';
+                responseBody = {};
               }
-              ctx.response.body = responseBody;
+              const wrappedResponse = new JSONResponse(responseBody);
+              wrappedResponse.serialize(ctx);
             }
 
-            if (onExecutionComplete !== undefined) {
+            if (this.__onExecutionSuccess !== null) {
               if (
-                await onExecutionComplete(ctx, session)
+                await this.__onExecutionSuccess(ctx, session)
                 .then(() => {
                   return true;
                 })
@@ -193,7 +179,7 @@ class WebServer {
           }
         )
 
-        this.server.use(
+        server.use(
           router.routes()
           ).use(
             router.allowedMethods(
@@ -203,7 +189,65 @@ class WebServer {
             )
           );
       });
-    })
+
+    });
+
+    this.__server = server;
+    this.__verbose = verbose;
+
+    this.__middlewares = [];
+    this.__onExecutionBegin = null;
+    this.__onExecutionSuccess = null;
+    this.__onExecutionFail = null;
+    this.__isListening = false;
+  }
+
+  listen(port) {
+    assert(this.__isListening === false);
+    this.__isListening = true;
+
+    this.__middlewares.forEach(middleware => {
+      this.__server.use(middleware);
+    });
+
+    this.__server.listen(port);
+  }
+
+  get verbose() {
+    return this.__verbose;
+  }
+
+  middlewares(middlewares) {
+    assert(this.__isListening === false, WebServer.PRIOR_TO_LISTEN_ERROR);
+    assert(this.__middlewares.length === 0);
+    assert(middlewares.length > 0);
+    this.__middlewares = middlewares;
+
+    return this;
+  }
+
+  onExecutionBegin(callback) {
+    assert(this.__isListening === false, WebServer.PRIOR_TO_LISTEN_ERROR);
+    assert(this.__onExecutionBegin === null);
+    this.__onExecutionBegin = callback;
+
+    return this;
+  }
+
+  onExecutionSuccess(callback) {
+    assert(this.__isListening === false, WebServer.PRIOR_TO_LISTEN_ERROR);
+    assert(this.__onExecutionSuccess === null);
+    this.__onExecutionSuccess = callback;
+
+    return this;
+  }
+
+  onExecutionFail(callback) {
+    assert(this.__isListening === false, "define prior to invoking listen");
+    assert(this.__onExecutionFail === null);
+    this.__onExecutionFail = callback;
+
+    return this;
   }
 
   /**
@@ -226,5 +270,7 @@ class WebServer {
   }
 
 }
+
+WebServer.PRIOR_TO_LISTEN_ERROR = "define prior to invoking listen";
 
 module.exports = WebServer;

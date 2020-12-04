@@ -2,9 +2,10 @@ const zlib = require('zlib');
 const ProtocolExtension = require("./ProtocolExtension");
 const ExtensionRequest = require("../ExtensionRequest");
 const ValidationError = require('../../errors/ValidationError');
-const PositiveIntAccessor = require("../../accessors/PositiveIntAccessor");
+const IntType = require('../../types/IntType');
 const assert = require('assert');
 const Frame = require('../Frame');
+const ParseError = require('../../errors/ParseError');
 
 /**
  * Implements the "permessage-deflate" websocket protocol extension.
@@ -52,7 +53,8 @@ class PerMessageDeflateExtension extends ProtocolExtension {
         throw new ValidationError(
           PerMessageDeflateExtension.SERVER_NO_CONTEXT_TAKEOVER_OPTION,
           'Only a value of True is permitted if this option is provided',
-        )
+          option
+        );
       }
 
       options[PerMessageDeflateExtension.SERVER_NO_CONTEXT_TAKEOVER_OPTION] = option;
@@ -76,6 +78,7 @@ class PerMessageDeflateExtension extends ProtocolExtension {
         throw new ValidationError(
           PerMessageDeflateExtension.CLIENT_NO_CONTEXT_TAKEOVER_OPTION,
           'Only a value of True is permitted if this option is provided',
+          option,
         )
       }
 
@@ -96,8 +99,14 @@ class PerMessageDeflateExtension extends ProtocolExtension {
   static validateServerMaxWindowBitsOption(extension, options) {
     if (PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS in extension.options) {
       const option = extension.options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS];
+      let value;
       if (option !== true) {
-        const value = PerMessageDeflateExtension.MAX_WINDOW_BITS_ACCESSOR.validate(option);
+        try {
+          const intOption = PerMessageDeflateExtension.MAX_WINDOW_BITS_ACCESSOR.fromString(option);
+          value = PerMessageDeflateExtension.MAX_WINDOW_BITS_ACCESSOR.test(intOption);
+        } catch(e) {
+          throw new ParseError(e.message ? e.message !== undefined : '');
+        }
         options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS] = value
       } else {
         options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS] = true;
@@ -312,7 +321,7 @@ PerMessageDeflateExtension.CLIENT_NO_CONTEXT_TAKEOVER_OPTION = 'client_no_contex
 PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS = 'server_max_window_bits';
 PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS = 'client_max_window_bits';
 
-PerMessageDeflateExtension.MAX_WINDOW_BITS_ACCESSOR = new PositiveIntAccessor(null).fromString().range(8, 15);
+PerMessageDeflateExtension.MAX_WINDOW_BITS_ACCESSOR = new IntType().from(8).to(15);
 
 PerMessageDeflateExtension.FLUSH_PATTERN = Buffer.from([0, 0, 0xFF, 0xFF])
 

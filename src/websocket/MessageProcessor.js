@@ -1,7 +1,7 @@
 const assert = require('assert');
+const NotImplementedError = require('../errors/NotImplementedError');
 const WebSocketServer = require('../WebSocketServer');
 const WebSocket = require('./WebSocket');
-const Frame = require('./Frame');
 
 class MessageProcessor {
 
@@ -116,7 +116,7 @@ class MessageProcessor {
   }
 
   async onRead(session, socket, data) {
-    throw new Error('Not implemented');
+    throw new NotImplementedError();
   }
 
   async _onConnect(session, socket) {

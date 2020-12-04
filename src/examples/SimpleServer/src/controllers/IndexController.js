@@ -10,6 +10,7 @@ class IndexController extends Controller {
 
   constructor() {
     super(
+      null,
       '/',
       [
         new Endpoint('/', Endpoint.INDEX)
@@ -17,14 +18,7 @@ class IndexController extends Controller {
     );
   }
 
-  /**
-   * Returns the home (index) page.
-   */
-  async validateIndex(ctx, session) {
-    return [];
-  }
-
-  async executeIndex(session) {
+  async index(session, urlParams, queryArgs) {
     return new ResponseObject(
       fs.readFileSync(path.resolve(__dirname, '..', 'templates', 'index.html'))
     )

@@ -10,6 +10,7 @@ class AppController extends Controller {
 
   constructor() {
     super(
+      null,
       '/app',
       [
         new Endpoint('/', Endpoint.INDEX),
@@ -17,14 +18,7 @@ class AppController extends Controller {
     );
   }
 
-  /**
-   * Returns the application entrypoint.
-   */
-  async validateIndex(ctx, session) {
-    return [];
-  }
-
-  async executeIndex(session) {
+  async index(session, urlParams, queryArgs) {
     return new ResponseObject(
       fs.readFileSync(path.resolve(__dirname, '..', 'templates', 'app.html'))
     )
