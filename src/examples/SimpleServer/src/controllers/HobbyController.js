@@ -40,7 +40,7 @@ class HobbyController extends AuthenticatedController {
   async get(session, urlParams, queryArgs) {
     assert(urlParams.id in HobbyController.HOBBY_BY_ID, `ID ${urlParams.id} not found`);
 
-    return new HobbyController.HOBBY_BY_ID[urlParams.id];
+    return HobbyController.HOBBY_BY_ID[urlParams.id];
   }
 
   async delete(session, urlParams, queryArgs) {

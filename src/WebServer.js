@@ -62,21 +62,19 @@ class WebServer {
 
             let args;
             try {
-              queryArgs = endpoint.processQueryArgs(ctx.request.query);
-              urlParams = endpoint.processUrlParams(ctx.params);
+              const queryArgs = endpoint.processQueryArgs(ctx.request.query);
+              const urlParams = endpoint.processUrlParams(ctx.params);
 
               if (!Endpoint.METHODS_WITHOUT_PAYLOAD.has(endpoint.method)) {
                 // There could be a payload
-                let body = ctx.request.body;
-                if (!Array.isArray(body)) {
-                  body = [body];
-
-                }
-
                 let items;
                 if (controller.dataDefinition === null) {
                   items = null;
                 } else {
+                  let body = ctx.request.body;
+                  if (!Array.isArray(body)) {
+                    body = [body];
+                  }
                   items = body.map(item => controller.dataDefinition.test(item));
                 }
                 args = [session, urlParams, queryArgs, items];
@@ -85,7 +83,16 @@ class WebServer {
               }
             } catch(e) {
               if (e instanceof ValidationError) {
-                this._createErrorResponse(ctx, 400, 'ValidationError', e.message);
+                this._createErrorResponse(
+                  ctx,
+                  400,
+                  'ValidationError',
+                  {
+                    key: e.key,
+                    message: e.message,
+                    value: e.value,
+                  }
+                );
               } else {
                 console.error(e.stack);
                 this._createErrorResponse(

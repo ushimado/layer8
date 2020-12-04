@@ -7,6 +7,7 @@ describe("Test controller", () => {
   it('Should fail if attempting to expose the same method twice', () => {
     try {
       new Controller(
+        null,
         '/',
         [
           new Endpoint('/', Endpoint.GET),
@@ -23,6 +24,7 @@ describe("Test controller", () => {
 
   it('Should not fail if receiving unique endpoint methods', () => {
     new Controller(
+      null,
       '/',
       [
         new Endpoint('/', Endpoint.GET),

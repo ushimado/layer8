@@ -31,7 +31,7 @@ class SignupController extends Controller {
 
   async post(session, urlParams, queryArgs, items) {
     assert(items.length === 1);
-    item = items[0];
+    const item = items[0];
 
     await UserService.addUser(
       item.firstName,

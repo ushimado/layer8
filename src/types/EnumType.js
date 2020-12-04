@@ -19,9 +19,10 @@ class EnumType extends AbstractType {
   }
 
   /**
-   * Must be implemented in a subclass, and should return a statically declared list.
+   * Must be implemented in a subclass, and should return a statically declared array.
    *
    * @readonly
+   * @returns {Array}
    * @memberof EnumType
    */
   get collection() {
@@ -36,7 +37,7 @@ class EnumType extends AbstractType {
     }
 
     if (!this.__lookup.has(value)) {
-      throw new ValidationError(null, `not a member of ${this.name()}`, value);
+      throw new ValidationError(null, `not a member of ${this.name}`, value);
     }
 
     return value;

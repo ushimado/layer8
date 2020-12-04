@@ -4,7 +4,6 @@ const {
   StringType,
 } = require('layer8');
 
-
 class LoginEntityDef extends AbstractDataDefinition {
 
   static DEFINITION = {
@@ -13,7 +12,7 @@ class LoginEntityDef extends AbstractDataDefinition {
   }
 
   get definition() {
-    return SignupEntityDef.DEFINITION;
+    return LoginEntityDef.DEFINITION;
   }
 
 }

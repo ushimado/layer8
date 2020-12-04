@@ -10,8 +10,15 @@ class StringType extends ArrayType {
     this.__trim = false;
   }
 
+  trim() {
+    assert(this.__trim === false);
+    this.__trim = true;
+
+    return this;
+  }
+
   test(value, isCreate) {
-    value = super.test(value, isCreate);
+    value = super.test(value, isCreate, true);
 
     if (this._isNullable === true && value === null) {
       return;
@@ -49,13 +56,6 @@ class StringType extends ArrayType {
     return value;
   }
 
-  trim() {
-    assert(this.__trim === false);
-    this.__trim = true;
-
-    return this;
-  }
-
   get description() {
     const description = [
       this.name()
@@ -76,6 +76,9 @@ class StringType extends ArrayType {
     return description.join(' ');
   }
 
+  fromString(value) {
+    return value;
+  }
 }
 
 module.exports = StringType;

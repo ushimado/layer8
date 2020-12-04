@@ -19,7 +19,7 @@ class EmailType extends StringType {
   test(value, isCreate) {
     value = super.test(value, isCreate);
 
-    if (!EmailType.RE_EMAIL_ADDRESS.test(rawValue)) {
+    if (!EmailType.RE_EMAIL_ADDRESS.test(value)) {
       throw new ValidationError(
         null,
         'Must constitute a valid email address',
