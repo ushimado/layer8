@@ -1,22 +1,21 @@
 const {
   EnumeratedMessageProcessor,
-  EnumeratedMessage
 } = require("layer8");
 const SessionService = require('../services/SessionService');
+const InstantMessageDef = require('../api/InstantMessageDef');
+const InstantMessageEnumDef = require('../api/InstantMessageEnumDef');
 
-class TickerMessageProcessor extends EnumeratedMessageProcessor {
+class IMMessageProcessor extends EnumeratedMessageProcessor {
   constructor() {
-    super('/ticker', 'accountId', true);
+    super('/ticker', InstantMessageDef, 'accountId', true);
 
     setInterval(
       () => {
-        const index = Math.floor(Math.random() * TickerMessageProcessor.RANDOM_MESSAGES.length);
-        this.broadcast(new EnumeratedMessage(
-          'TEXT_MESSAGE',
-          {
-            text: TickerMessageProcessor.RANDOM_MESSAGES[index]
-          },
-        ));
+        const index = Math.floor(Math.random() * IMMessageProcessor.RANDOM_MESSAGES.length);
+        this.broadcast({
+          type: "TEXT_MESSAGE",
+          text: IMMessageProcessor.RANDOM_MESSAGES[index]
+        });
       },
       3000
     );
@@ -24,6 +23,10 @@ class TickerMessageProcessor extends EnumeratedMessageProcessor {
 
   static onTextMessage(session, socket, body) {
     console.log(`Client ${session.user.email} received a text message:\n${body.text}`)
+  }
+
+  static onTextBroadcast(session, socket, body) {
+    console.log(`Client ${session.user.email} sent a broadcast message:\n${body.text}`)
   }
 
   async onConnect(session, socket) {
@@ -40,11 +43,11 @@ class TickerMessageProcessor extends EnumeratedMessageProcessor {
   }
 
   get messageHandlerMapping() {
-    return TickerMessageProcessor.MESSAGE_HANDLER_MAPPING;
+    return IMMessageProcessor.MESSAGE_HANDLER_MAPPING;
   }
 }
 
-TickerMessageProcessor.RANDOM_MESSAGES = [
+IMMessageProcessor.RANDOM_MESSAGES = [
   "Hello there, Layer8 says have a happy day",
   "Today is going to be a great day",
   "It's me, Layer8",
@@ -58,8 +61,9 @@ TickerMessageProcessor.RANDOM_MESSAGES = [
   "I'm going to visit a cow farm today, how about you?",
 ];
 
-TickerMessageProcessor.MESSAGE_HANDLER_MAPPING = {
-  TEXT_MESSAGE: TickerMessageProcessor.onTextMessage,
-};
+IMMessageProcessor.MESSAGE_HANDLER_MAPPING = Object.fromEntries([
+  [InstantMessageEnumDef.TEXT_MESSAGE, IMMessageProcessor.onTextMessage],
+  [InstantMessageEnumDef.TEXT_BROADCAST, IMMessageProcessor.onTextBroadcast],
+]);
 
-module.exports = TickerMessageProcessor;
+module.exports = IMMessageProcessor;

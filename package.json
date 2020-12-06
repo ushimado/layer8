@@ -23,9 +23,9 @@
     "express"
   ],
   "dependencies": {
+    "ensuredata": "^1.0.1",
     "koa": "^2.12.1",
-    "koa-router": "^9.0.1",
-    "lodash": "^4.17.20"
+    "koa-router": "^9.0.1"
   },
   "devDependencies": {
     "mocha": "^8.1.3"

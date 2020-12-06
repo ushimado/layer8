@@ -1,7 +1,5 @@
-const {
-  Endpoint,
-  IntType,
- } = require('layer8');
+const { Endpoint } = require('layer8');
+const { IntType } = require('ensuredata');
 const AuthenticatedController = require('./AuthenticatedController');
 const assert = require('assert');
 

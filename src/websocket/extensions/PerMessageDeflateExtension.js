@@ -1,8 +1,10 @@
 const zlib = require('zlib');
 const ProtocolExtension = require("./ProtocolExtension");
 const ExtensionRequest = require("../ExtensionRequest");
-const ValidationError = require('../../errors/ValidationError');
-const IntType = require('../../types/IntType');
+const {
+  ValidationError,
+  IntType,
+} = require('ensuredata');
 const assert = require('assert');
 const Frame = require('../Frame');
 const ParseError = require('../../errors/ParseError');

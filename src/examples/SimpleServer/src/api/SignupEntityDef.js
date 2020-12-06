@@ -4,8 +4,7 @@ const {
   EmailType,
   PasswordType,
   ValidationError,
-} = require('layer8');
-
+} = require('ensuredata');
 
 class SignupEntityDef extends AbstractDataDefinition {
 

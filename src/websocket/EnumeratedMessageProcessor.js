@@ -1,8 +1,8 @@
 const JSONMessageProcessor = require('./JSONMessageProcessor');
 const ParseError = require('../errors/ParseError');
 const NotImplementedError = require('../errors/NotImplementedError');
-const EnumeratedMessage = require('./EnumeratedMessage');
 const assert = require('assert');
+const EnumeratedMessageDefinition = require('./EnumeratedMessageDefinition');
 
 /**
  * Layer8's preferred super class for message processing.  It requires registration of a specific
@@ -14,6 +14,30 @@ const assert = require('assert');
  */
 class EnumeratedMessageProcessor extends JSONMessageProcessor {
 
+  constructor(endpoint, dataDefinition, sessionKey=null, kickDuplicateSessionKey=false) {
+    super(endpoint, sessionKey, kickDuplicateSessionKey);
+
+    const dataDefinitionInst = new dataDefinition();
+    assert(dataDefinitionInst instanceof EnumeratedMessageDefinition);
+    this.endpoint = endpoint;
+    this.__dataDefinition = dataDefinitionInst;
+
+    const validTypes = dataDefinitionInst.definition.type.collection;
+    const messageHandlerMappingSet = new Set(Object.keys(this.messageHandlerMapping));
+    assert(
+      messageHandlerMappingSet.size === validTypes.length,
+      `The types enumerated in ${dataDefinitionInst.definition.type.name} must match the types in the messageHandlerMapping`
+    );
+    validTypes.forEach(type => {
+      assert(messageHandlerMappingSet.has(type), `${type} is missing from the messageHandlerMapping`);
+    })
+
+    this.webSocketServer = null;
+    this.sessionKey = sessionKey;
+    this.kickDuplicateSessionKey = kickDuplicateSessionKey;
+    this.sessionKeyMapping = {};
+  }
+
   /**
    * Processes incoming data into a EnumeratedMessage and returns it.
    *
@@ -24,35 +48,12 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
    * @memberof EnumeratedMessageProcessor
    */
   async _onRead(session, socket, data) {
+    if (this.__dataDefinition === null) {
+      return null;
+    }
+
     data = await super._onRead(session, socket, data);
-    if (!(EnumeratedMessageProcessor.TYPE_KEY in data)) {
-      throw new ParseError('Missing message type key')
-    }
-    if (!(EnumeratedMessageProcessor.BODY_KEY in data)) {
-      throw new ParseError('Missing message body')
-    }
-
-    return new EnumeratedMessage(
-      data.type,
-      data.body,
-    );
-  }
-
-  /**
-   * Processes a EnumeratedMessage into a JSON object suitable for string serialization.
-   *
-   * @param {EnumeratedMessage} data
-   * @returns
-   * @memberof EnumeratedMessageProcessor
-   */
-  async _onWrite(data) {
-    assert(data instanceof EnumeratedMessage);
-    const payload = {};
-    payload[EnumeratedMessageProcessor.TYPE_KEY] = data.type;
-    payload[EnumeratedMessageProcessor.BODY_KEY] = data.body;
-    payload[EnumeratedMessageProcessor.STATUS_KEY] = data.status;
-
-    return super._onWrite(payload);
+    return this.__dataDefinition.test(data);
   }
 
   /**
@@ -65,14 +66,12 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
    * @memberof EnumeratedMessageProcessor
    */
   async onRead(session, socket, data) {
-    assert(data instanceof EnumeratedMessage);
-
-    const messageMapping = this.messageHandlerMapping;
-    if (!(data.type in messageMapping)) {
-      throw new ParseError(`Message type "${data.type}" is not a supported by this message processor`)
+    if (data === null) {
+      // Processor is receiving data but was not configured to receive
+      socket.socket.end();
     }
-
-    await messageMapping[data.type](session, socket, data.body);
+    const messageMapping = this.messageHandlerMapping;
+    await messageMapping[data.type](session, socket, data);
   }
 
   /**
@@ -81,7 +80,7 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
    *
    *  - session
    *  - socket (a WebSocket instance)
-   *  - body (the EnumeratedMessage body)
+   *  - data (the validated message)
    *
    * @readonly
    * @returns {Object} - Mapping from message type to handler
@@ -91,9 +90,5 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
     throw new NotImplementedError();
   }
 }
-
-EnumeratedMessageProcessor.TYPE_KEY = 'type';
-EnumeratedMessageProcessor.BODY_KEY = 'body';
-EnumeratedMessageProcessor.STATUS_KEY = 'status';
 
 module.exports = EnumeratedMessageProcessor;

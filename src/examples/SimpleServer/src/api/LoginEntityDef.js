@@ -2,7 +2,7 @@ const {
   AbstractDataDefinition,
   EmailType,
   StringType,
-} = require('layer8');
+} = require('ensuredata');
 
 class LoginEntityDef extends AbstractDataDefinition {
 

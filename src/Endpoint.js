@@ -1,7 +1,8 @@
 const assert = require('assert');
-const { timeStamp } = require('console');
-const AbstractType = require('./types/AbstractType');
-const { ValidationError } = require('.');
+const {
+  ValidationError,
+  AbstractType
+} = require('ensuredata');
 
 class Endpoint {
 
@@ -93,7 +94,7 @@ class Endpoint {
 
       if (!(key in obj)) {
         if (dataType.defaultVal === undefined) {
-          throw new ValidationError(null, 'argument is required');
+          throw new ValidationError(key, 'argument is required');
         }
 
         value = dataType.defaultVal;

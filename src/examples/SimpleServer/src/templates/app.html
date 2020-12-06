@@ -14,6 +14,9 @@
       Ticker data push:
     </h2>
     <div id="ticker"></div>
+    <h2>Broadcast a message to all clients</h2>
+    <input id="message" type="text"/>
+    <button onclick="broadcast();">Send</button>
     <script type="text/javascript">
       (
         () => {
@@ -35,9 +38,7 @@
           webSocket.onopen = (event) => {
             webSocket.send(JSON.stringify({
               type: 'TEXT_MESSAGE',
-              body: {
-                text: 'Hello server, I am the client!'
-              }
+              text: 'Hello server, I am the client!'
             }));
           };
           webSocket.onmessage = (event) => {
@@ -121,6 +122,12 @@
                 );
               }
             });
+          }
+
+          var broadcast = () => {
+            // Broadcast message to all other attached clients
+            var message = document.getElementById('message');
+            console.log(message);
           }
 
           var requestHobbies = () => {

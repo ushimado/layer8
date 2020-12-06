@@ -1,6 +1,6 @@
 const NotImplementedError = require('./errors/NotImplementedError');
 const Endpoint = require('./Endpoint');
-const AbstractDataDefinition = require('./AbstractDataDefinition');
+const { AbstractDataDefinition } = require('ensuredata');
 const assert = require('assert');
 
 class Controller {

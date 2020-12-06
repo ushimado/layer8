@@ -2,7 +2,7 @@ const Koa = require('koa');
 const Router = require('koa-router');
 const Endpoint = require('./Endpoint');
 const assert = require('assert');
-const ValidationError = require('./errors/ValidationError');
+const { ValidationError } = require('ensuredata');
 const ResponseObject = require('./responseTypes/ResponseObject');
 const JSONResponse = require('./responseTypes/JSONResponse');
 

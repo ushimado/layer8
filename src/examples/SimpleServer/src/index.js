@@ -10,7 +10,7 @@ const AppController = require('./controllers/AppController');
 const UserController = require('./controllers/UserController');
 const HobbyController = require('./controllers/HobbyController');
 
-const TickerMessageProcessor = require('./message_processors/TickerMessageProcessor');
+const IMMessageProcessor = require('./message_processors/IMMessageProcessor');
 
 const AS_PORT = 8888;
 const WS_PORT = 8889;
@@ -48,8 +48,7 @@ appServer.listen(AS_PORT);
 console.log(`WebSocket server listening on port ${WS_PORT}`);
 const webSocketServer = new WebSocketServer(
   [
-    new TickerMessageProcessor(),
-
+    new IMMessageProcessor(),
   ],
   [
     PerMessageDeflateExtension,
