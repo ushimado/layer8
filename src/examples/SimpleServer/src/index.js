@@ -9,8 +9,10 @@ const LoginController = require('./controllers/LoginController');
 const AppController = require('./controllers/AppController');
 const UserController = require('./controllers/UserController');
 const HobbyController = require('./controllers/HobbyController');
-
+const ValidatorRegistration = require('./api/ValidatorRegistration');
 const IMMessageProcessor = require('./message_processors/IMMessageProcessor');
+
+ValidatorRegistration.register();
 
 const AS_PORT = 8888;
 const WS_PORT = 8889;

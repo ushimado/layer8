@@ -15,6 +15,7 @@ class Endpoint {
    */
   constructor(relativePath, method) {
     this.__queryArgs = null;
+    this.__queryArgsLower = null;
     this.__urlParams = null;
     this.__middlewares = [];
 
@@ -39,7 +40,7 @@ class Endpoint {
       return {};
     }
 
-    return this.__processArgs(this.__queryArgs, obj);
+    return this.__processArgs(this.__queryArgs, obj, this.__queryArgsLower);
   }
 
   processUrlParams(obj) {
@@ -53,12 +54,15 @@ class Endpoint {
   queryArgs(definition) {
     assert(this.__queryArgs === null);
 
+    const queryArgsLower = {};
     for (let key in definition) {
       const dataType = definition[key];
       assert(dataType instanceof AbstractType);
+      queryArgsLower[key] = key.toLowerCase();
     }
 
     this.__queryArgs = definition;
+    this.__queryArgsLower = queryArgsLower;
 
     return this;
   }
@@ -86,20 +90,21 @@ class Endpoint {
     return this;
   }
 
-  __processArgs(definition, obj) {
+  __processArgs(definition, obj, caselessLookup=null) {
     const target = {};
     for (let key in definition) {
       const dataType = definition[key];
       let value;
 
-      if (!(key in obj)) {
+      let caseLessKey = caselessLookup === null ? key : caselessLookup[key];
+      if (!(caseLessKey in obj)) {
         if (dataType.defaultVal === undefined) {
           throw new ValidationError(key, 'argument is required');
         }
 
         value = dataType.defaultVal;
       } else {
-        value = dataType.fromString(obj[key]);
+        value = dataType.fromString(obj[caseLessKey]);
       }
 
       dataType.test(value, this.method === Endpoint.POST);

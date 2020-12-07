@@ -16,10 +16,12 @@
     <div id="ticker"></div>
     <h2>Broadcast a message to all clients</h2>
     <input id="message" type="text"/>
-    <button onclick="broadcast();">Send</button>
+    <button id="sendButton">Send</button>
     <script type="text/javascript">
       (
         () => {
+          var socketReady = false;
+
           var session = window.sessionStorage.getItem('session');
           if (session === null) {
             // Redirect the client to the login page
@@ -36,6 +38,7 @@
 
           var webSocket = new WebSocket("ws://localhost:8889/ticker?auth_token=" + authToken);
           webSocket.onopen = (event) => {
+            socketReady = true;
             webSocket.send(JSON.stringify({
               type: 'TEXT_MESSAGE',
               text: 'Hello server, I am the client!'
@@ -45,7 +48,7 @@
             const message = JSON.parse(event.data);
             if (message.type === 'TEXT_MESSAGE') {
               var tickerDiv = document.getElementById('ticker');
-              tickerDiv.innerHTML = message.body.text;
+              tickerDiv.innerHTML = message.text;
             }
           };
 
@@ -125,9 +128,16 @@
           }
 
           var broadcast = () => {
+            if (socketReady === true) {
+              var message = document.getElementById('message');
+              webSocket.send(JSON.stringify({
+              type: 'TEXT_BROADCAST',
+              text: message.value,
+            }));
+            }
             // Broadcast message to all other attached clients
-            var message = document.getElementById('message');
-            console.log(message);
+            console.log('Broadcasting:\n' + message.value);
+            message.value = '';
           }
 
           var requestHobbies = () => {
@@ -183,6 +193,9 @@
 
           requestUserInfo();
           requestHobbies();
+
+          var sendButton = document.getElementById("sendButton");
+          sendButton.onclick = broadcast;
         }
       )();
     </script>

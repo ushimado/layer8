@@ -5,6 +5,14 @@ const assert = require('assert');
 
 class Controller {
 
+  static METHOD_TO_NAME = Object.fromEntries([
+    [Endpoint.INDEX, 'index'],
+    [Endpoint.GET, 'get'],
+    [Endpoint.POST, 'post'],
+    [Endpoint.PUT, 'put'],
+    [Endpoint.DELETE, 'delete'],
+  ])
+
   /**
    * Creates an instance of Controller.
    *
@@ -14,7 +22,7 @@ class Controller {
    * @param {Array} endpoints
    * @memberof Controller
    */
-  constructor(dataDefinition, basePath, endpoints, middlewares) {
+  constructor(dataDefinition, basePath, endpoints, middlewares=null) {
     if (typeof dataDefinition === 'function') {
       const dataDefinitionInst = new dataDefinition();
       assert(dataDefinitionInst instanceof AbstractDataDefinition);
@@ -27,28 +35,25 @@ class Controller {
     assert(Array.isArray(endpoints), 'Argument must be an array of endpoint objects');
     assert(endpoints.length > 0, 'A controller must expose at least one endpoint');
 
-    const methods = new Set();
+    const endpointByMethod = {};
     endpoints.forEach(endpoint => {
       assert(endpoint instanceof Endpoint, 'Each endpoint must be an Endpoint object instance');
       assert(
-        !methods.has(endpoint.method),
+        !(endpoint.method in endpointByMethod),
         `Controller cannot expose ${endpoint.method} more than once`
       );
-      methods.add(endpoint.method)
+      endpointByMethod[endpoint.method] = endpoint;
     });
 
     this.basePath = basePath;
     this.endpoints = endpoints;
-    this.__middlewares = middlewares === undefined ? [] : middlewares;
+    this.__endpointByMethod = {};
+    this.__middlewares = middlewares === null ? [] : middlewares;
     assert(Array.isArray(this.__middlewares));
   }
 
   get controllerProcessors() {
     return this.__middlewares;
-  }
-
-  get dataDefinition() {
-    return this.__dataDefinitionInst;
   }
 
   /**
@@ -61,6 +66,39 @@ class Controller {
    */
   async index(session, urlParams, queryArgs) {
     throw new NotImplementedError('The index method is not implemented');
+  }
+
+  async prepareArguments(ctx) {
+    const method = ctx.method;
+    assert(method in Controller.METHOD_TO_NAME);
+    assert(method in this.__endpointByMethod[method]);
+
+    const endpoint = this.__endpointByMethod[method];
+    const queryArgs = endpoint.processQueryArgs(ctx.request.query);
+    const urlParams = endpoint.processUrlParams(ctx.params);
+    const session = ctx.state.session === undefined ? null : ctx.state.session;
+
+    if (!Endpoint.METHODS_WITHOUT_PAYLOAD.has(method)) {
+      let items = null;
+      const dataDefinition = this.__dataDefinitionInst;
+      if (dataDefinition !== null) {
+        let body = ctx.request.body;
+        if (!Array.isArray(body)) {
+          body = [body];
+        }
+        items = body.map(item => dataDefinition.test(item));
+      }
+      return [session, urlParams, queryArgs, items];
+    }
+
+    return [session, urlParams, queryArgs];
+  }
+
+  async invokeHandler(ctx, args) {
+    const method = ctx.method;
+    assert(method in Controller.METHOD_TO_NAME);
+    const handler = Controller.METHOD_TO_NAME[method];
+    return handler(...args);
   }
 
   /**

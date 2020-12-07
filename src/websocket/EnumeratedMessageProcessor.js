@@ -1,8 +1,8 @@
 const JSONMessageProcessor = require('./JSONMessageProcessor');
-const ParseError = require('../errors/ParseError');
 const NotImplementedError = require('../errors/NotImplementedError');
 const assert = require('assert');
 const EnumeratedMessageDefinition = require('./EnumeratedMessageDefinition');
+const { DefinitionRegistry } = require('ensuredata');
 
 /**
  * Layer8's preferred super class for message processing.  It requires registration of a specific
@@ -19,6 +19,10 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
 
     const dataDefinitionInst = new dataDefinition();
     assert(dataDefinitionInst instanceof EnumeratedMessageDefinition);
+    assert(
+      DefinitionRegistry.isValidatorSuperClass(dataDefinitionInst),
+      `${dataDefinition.name} does not appear to be registered with the DefinitionRegistry`
+    );
     this.endpoint = endpoint;
     this.__dataDefinition = dataDefinitionInst;
 
@@ -30,7 +34,23 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
     );
     validTypes.forEach(type => {
       assert(messageHandlerMappingSet.has(type), `${type} is missing from the messageHandlerMapping`);
-    })
+    });
+
+    // Ensure that each enumeration has been covered
+    dataDefinitionInst.definition.type.collection.forEach(enumeration => {
+      const testObj = {
+        type: enumeration,
+      }
+
+      try {
+        DefinitionRegistry.getValidatorInstance(dataDefinitionInst, testObj);
+      } catch(e) {
+        assert(
+          false,
+          `${enumeration} from ${dataDefinition.name} does not have a registered validator in DefinitionRegistry.  Please ensure that the corresponding subclass of ${dataDefinition.name} has been imported, and is registered.`
+        );
+      }
+    });
 
     this.webSocketServer = null;
     this.sessionKey = sessionKey;

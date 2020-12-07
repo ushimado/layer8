@@ -13,7 +13,7 @@ class IMMessageProcessor extends EnumeratedMessageProcessor {
       () => {
         const index = Math.floor(Math.random() * IMMessageProcessor.RANDOM_MESSAGES.length);
         this.broadcast({
-          type: "TEXT_MESSAGE",
+          type: InstantMessageEnumDef.TEXT_MESSAGE,
           text: IMMessageProcessor.RANDOM_MESSAGES[index]
         });
       },
@@ -21,12 +21,13 @@ class IMMessageProcessor extends EnumeratedMessageProcessor {
     );
   }
 
-  static onTextMessage(session, socket, body) {
-    console.log(`Client ${session.user.email} received a text message:\n${body.text}`)
+  static onTextMessage(session, socket, data) {
+    console.log(`Client ${session.user.email} received a text message:\n${data.text}`)
   }
 
-  static onTextBroadcast(session, socket, body) {
-    console.log(`Client ${session.user.email} sent a broadcast message:\n${body.text}`)
+  static onTextBroadcast(session, socket, data) {
+    console.log(`Client ${session.user.email} sent a broadcast message:\n${data.text}`)
+    this.broadcast(data);
   }
 
   async onConnect(session, socket) {

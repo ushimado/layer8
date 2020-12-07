@@ -1,6 +1,5 @@
 const InstantMessageDef = require("./InstantMessageDef");
 const InstantMessageEnumDef = require('./InstantMessageEnumDef');
-const { DefinitionRegistry } = require('ensuredata');
 
 class TextMessageDef extends InstantMessageDef {
 
@@ -9,7 +8,5 @@ class TextMessageDef extends InstantMessageDef {
   }
 
 }
-
-DefinitionRegistry.register(TextMessageDef);
 
 module.exports = TextMessageDef;

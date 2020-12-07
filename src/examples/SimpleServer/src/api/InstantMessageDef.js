@@ -1,7 +1,6 @@
 const InstantMessageEnumDef = require('./InstantMessageEnumDef');
 const { EnumeratedMessageDefinition } = require("layer8");
 const {
-  DefinitionRegistry,
   StringType,
 } = require('ensuredata');
 
@@ -19,7 +18,5 @@ class InstantMessageDef extends EnumeratedMessageDefinition {
   }
 
 }
-
-DefinitionRegistry.register(InstantMessageDef);
 
 module.exports = InstantMessageDef;

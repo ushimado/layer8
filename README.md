@@ -1,21 +1,18 @@
 # Layer8
-An organized yet versatile framework for RESTful web services and websocket services.
+A well organized framework for web and websocket services which takes data validation very seriously.
 
 ## Key features
-- Designed around RESTful endpoints
+- Designed for RESTful endpoints
 - Built in authentication and password hashing
-- Thorough input data validation
+- Exceptionally thorough data validation
 - Organized routing/controller setup
 - Pre/post execution hooks for transaction code
-- Authenticate and service websocket clients
-- Convenient JSON based protocol/framework for websocket messaging
-- Broadcast data to all connected websocket clients
 
 ## Philosophy
-When designing Layer8, the goal was to standardize the process of adding RESTful endpoints while eliminating a lot of the boilerplate necessary to accomplish this with frameworks such as Koa or Express.  Extending web services should be easy, with as little boilerplate as possible, allowing the developer to focus on business logic rather than framework.  Additionally, robust data validation is crucial to maintaining a secure and stable environment.  Layer8 aims to provide an excellent data validation framework for both web and websocket services, alleviating the burden on the developer to come up with a solution.
+Layer8 was designed with consistency in mind.  The aim was to provide a consistent way for developers develop web and websocket services, while automating some of the more challenging and/or error prone tasks such as data validation.  Web services are designed to be implicitly RESTful, and both web and websocket services take advantage of [EnsureData](https://www.npmjs.com/ensuredata), our through data validation library, making API building, a dead simple process.
 
 ## Example application
-Most of the functionality provided in Layer8 is demonstrated in the [example application](https://github.com/hashibuto/layer8/tree/master/src/examples/SimpleServer).  The application is NOT meant to be realistic from a best practices standpoint (serving static assets within the web application), but rather a full demonstration of what Layer8 is capable of, with working examples.
+Most of the functionality provided in Layer8 is demonstrated in the [example application](https://github.com/hashibuto/layer8/tree/master/src/examples/SimpleServer).  The application is NOT meant to be realistic from a best practices standpoint (serving static assets within the web application), but rather a full demonstration of what Layer8 is capable of, with working examples of both a web, and websocket server.
 
 # Web services
 
@@ -25,13 +22,11 @@ Layer8 is built around [Koa](https://www.npmjs.com/package/koa) which has served
 ```
 const { Server } = require('layer8');
 
-const appServer = new Server(
-  [
+const appServer = new Server([
     ...controllerInstances,
-  ],
-);
+]);
 
-appServer.server.listen(8888);
+appServer.listen(8888);
 ```
 
 The basic server setup is very minimal.  The first argument is an array of controller instances.  Each controller defines its own routing.  In a more complex setup below, we can see how method execution can be wrapped in a transaction block.
@@ -39,28 +34,30 @@ The basic server setup is very minimal.  The first argument is an array of contr
 ```
 const { Server } = require('layer8');
 
-const appServer = new Server(
-  [
+const appServer = new Server([
     ...controllerInstances,
-  ],
-  () => {
-    // Callback for when endpoint execution begins
-    // myTransaction.begin();
-  },
-  () => {
-    // Callback for when endpoint execution completes (only if no exception is thrown)
-    // myTransaction.commit();
-  },
-  () => {
-    // Callback for when endpoint execution fails (only if exception is thrown)
-    // myTransaction.rollback();
-  }
-);
+]).onExecutionBegin(async (ctx, session) => {
+  // Start transaction
+}).onExecutionSuccess(async (ctx, session) => {
+  // Commit transaction
+}).onExecutionFail(async (ctx, session, error) => {
+  // Roll back transaction
+});
 
-appServer.server.listen(8888);
+appServer.listen(8888);
 ```
 
-Of course transaction management is only one factet of what these callbacks can be used for, but the point is adequately illustrated. Additionally, an array of middlewares can be passed into the `Server` constructor, which will execute in order, on every endpoint prior to execution.  This is useful for things such as endpoint timing, etc.  Middlewares take the standard form of:
+Of course transaction management is only one factet of what these callbacks can be used for, but the point is adequately illustrated. Additionally, an array of middlewares can be attached to the `Server`, which will execute in order, on every endpoint prior to execution.
+
+```
+new Server([
+  ...controllers
+]).middlewares([
+  ...middlewares
+]);
+```
+
+This is useful for things such as endpoint timing, etc.  Middlewares take the standard form of:
 
 ```
 @param {object} ctx - The Koa context object (request info, etc.)
@@ -72,6 +69,39 @@ async (ctx, next) => {
 }
 ```
 
+## Endpoints
+The `Endpoint` class defines an endpoint's path extension, HTTP method, and any middlewares to execute when a visitor visits that specific endpoint.  Endpoint instances are passed to the `Controller` at the time of instantiation and determine which routings are available to the controller.
+
+The `Endpoint` constructor takes the following arguments:
+
+```
+  @param {string} relativePath - The path of the endpoint relative to the controller's path.
+  @param {string} method - The HTTP method which the endpoint accepts (See Endpoint.METHODS)
+```
+
+The `Endpoint` class also provides a few additional methods, allowing for attachment of middlewares, query argument validators, and URL parameter validators.  Let's take a look at a few example endpoint initializations:
+
+```
+  new Endpoint('/', Endpoint.INDEX),
+  new Endpoint('/:id', Endpoint.GET).urlParams({id: new IntType().from(1)}),
+```
+Here, two endpoints are exposed.  The first of the two, is exposes the `INDEX` method off the root of the controller.  The second, slightly more complicated instance exposes the `GET` method off the root of the controller, with a single url parameter `:id`.  The `.urlParams({id: new IntType().from(1)})` following, indicates that the following validator mapping will be used to validate URL arguments.
+
+```
+{
+  id: new IntType().from(1),
+}
+```
+
+In this case, the `id` refers to the `:id` in the URL, and the `new IntType().from(1)` indicates that it will accept instances of integers, greater than or equal to 1.  See [EnsureData](https://www.npmjs.com/ensuredata) for detailed information on defining validators.
+
+Endpoints accept the following attachments:
+- `.middlewares([...])` - Defines middlewares to be used just with this endpoint.  Middlewares take the same form of method as defined at the server level.
+- `.queryArgs({...})` - Accepts an object which consists of key/validator pairs.  Each key refers to an argument (eg: `myname=`) in the query arguments.
+- `.urlParams({...})` - Accepts an object which consists of key/validator pairs.  Each key refers to an argument (eg: `:myId`) in the URL path.
+
+Any arguemnts coming from the URL path or query string must be validated, otherwise they will not be made available to the controller.
+
 ## Controllers
 Controllers both define and implement the endpoint and all supported methods of said endpoint.  Layer8 controllers support the following methods / pseudomethod:
 
@@ -81,251 +111,138 @@ Controllers both define and implement the endpoint and all supported methods of 
 - PUT
 - DELETE
 
-`INDEX` is actually a `GET` method, but facilitates the common use case whereby an entity ID is not supplied and all entities are requested for the particular endpoint.
+`INDEX` is actually a `GET` method but facilitates a GET all, whereas GET would typically GET a single specific entity.  Each method has a corresponding overridable method in the controller, which will receive fully validated input, based on the validation criteria.  Below is a full featured example, consisting of a controller that creates/updates/retrieves and deletes instances of a given entity type.  To keep things organized, we'll define the entity validator first in a separate code block, using [EnsureData](https://www.npmjs.com/ensuredata)'s definition framework.
 
-Each HTTP method is broken into two supporting methods on the controller object: one facilitates input data validation, and the other performs execution based on the validated data.
-
-In this example, a controller with 2 methods is illustrated:
 ```
 const {
-  Controller,
-  Endpoint,
-  ResponseObject,
-  RedirectResponse,
-  Accessor,
-} = require('layer8');
-const body = require('koa-body');
-const TestAccessors = require('../api/TestAccessors');
+  AbstractDataDefinition,
+  IntType,
+  StringType,
+  EmailType
+} = require('ensuredata);
 
-class TestController extends Controller {
+class UserDef extends AbstractDataDefinition {
 
-  constructor() {
-    super(
-      '/test',
-      [
-        new Endpoint('/', Endpoint.INDEX),
-        new Endpoint('/', Endpoint.POST, [body()]),
-      ]
-    );
+  static DEFINITION = {
+    id: new IntType().from(1).onlyAfterCreate(),
+    firstName: new String().maxLength(25).trim(),
+    lastName: new String().maxLength(25).trim(),
+    emailType: new EmailType(),
   }
 
-  async validateIndex(ctx, session) {
-    // Since there is no input data, there is nothing to validate
-    return [];
-  }
-
-  async executeIndex(session) {
-    // Execution goes in here.  Each execute method should return a subclass
-    // of the ResponseObject.  In this case we'll return a simple hello world
-
-    return new ResponseObject("Hello world")
-  }
-
-  async validatePost(ctx, session) {
-    // Validates the input data parsed from the form data
-
-    return Accessor.validateAll(
-      ctx.request.body,
-      [
-        TestAccessors.FIRST_NAME,
-        TestAccessors.LAST_NAME,
-        TestAccessors.EMAIL,
-      ]
-    );
-  }
-
-  async executePost(session, firstName, lastName, email) {
-    // Do something with the data, then return a response (in this case a redirect)
-
-    return RedirectResponse("/thank_you");
+  get definition() {
+    return UserDef.DEFINITION;
   }
 
 }
-
-module.exports = TestController;
 ```
-
-When writing a new controller, we first subclass the `Controller` class, which provides the basic interface for building our own controllers.  Here we've supplied implementations for 2 methods (`INDEX` and `POST`), by providing those `Endpoint` objects in the constructor, and then overriding the respective base methods to perform both validation and execution.
-
-Let's take a closer look at the constructor:
+Above, we've defined an entity and its constraints.  This definition will be associated with the controller, and used to ensure that all input is valid.  Invalid input will trigger a `ValidationError`.  Here's how we'd implement the controller:
 
 ```
+const {
+  IntType
+} = require('ensuredata');
+const { Controller } = require('layer8');
+const assert = require('assert');
+
+class UserController extends Controller {
+
+  static URL_PARAMS_DEF = {
+    id: new IntType().from(1),
+  }
+
   constructor() {
     super(
-      '/test',
+      UserDef,
+      '/user',
       [
-        new Endpoint('/', Endpoint.INDEX),
-        new Endpoint('/', Endpoint.POST, [body()]),
-      ]
+        new Endpoint('\', Endpoint.INDEX).queryArgs({
+          pageNum: new IntType(1).from(1),
+          pageSize: new IntType(25).from(1),
+        }),
+        new Endpoint('\:id', Endpoint.GET).urlParams(UserController.URL_PARAMS_DEF),
+        new Endpoint('\:id', Endpoint.PUT).urlParams(UserController.URL_PARAMS_DEF),
+        new Endpoint('\:id', Endpoint.POST),
+      ],
     );
   }
+
+  async index(session, urlParams, queryArgs) {
+    const pageNum = queryArgs.pageNum;
+    const pageSize = queryArgs.pageSize;
+
+    return await UserService.getUsers(pageNum, pageSize);
+  }
+
+  async get(session, urlParams, queryArgs) {
+    const id = urlParams.id;
+
+    return await UserService.getUser(id);
+  }
+
+  async put(session, urlParams, queryArgs, items) {
+    assert(items.length === 1);
+    const user = items[0];
+
+    const id = urlParams.id;
+    await UserService.updateUser(id, user);
+  }
+
+  async post(session, urlParams, queryArgs, items) {
+    assert(items.length === 1);
+    const user = items[0];
+
+    await UserService.createUser(user);
+  }
+}
 ```
 
-Here, we're invoking the base class constructor and passing the endpoint's base path as the first argument.  In this case `/test`.  We then supply 2 endpoints, each of which has its own path suffix, and method.  In this case, both path suffixes are `/`, which means there is no additional appendage to the `/test` path.  Effectively we are supporting the `INDEX` and `POST` methods when a vistor hits the `/test` endpoint.
+A few things to note in the example above.  First, the arguments which contain data for each endpoint are always validated by the controller. Unvalidated data never makes it to the controller immplementation.  Second, you will notice the `.onlyAfterCreate()` which was applied to the `UserDef` definition in the code block previous to this one.  This means that the `id` key is only validated on objects which are already created.  What this means is that `PUT` and `DELETE` methods will require the key to be present, however `POST` methods will not, and will simply omit it, if it happens to be provided on the object.  In the example above, we supplied the id in the URL parameter to each of the methods that required it, but it should be noted that it must also be available on the object itself since it was added to the definition.
 
-In the case of
+Lastly, you'll notice the `items` argument.  Layer8 was designed to receive one or more entities.  In the case where a single entity is received, it gets encapsulated in an array.  This makes implementing methods that need to create or edit multiple entities at once, simple.  Simply pass an array of them, and the entire array will be validated and returned as the `items` argument.  Above, we are expecting a single entity only, so we assert such.
+
+## Controller responses
+
+Each controller method is expected to return an instance of `ResponseObject`.  There are a few types of `ResponseObject`, each of which has a specific role.
+
+- `ResponseObject` - The base class for all responses, expects string type data, can do things like set headers, cookies, and status code.
+- `JSONResponse` - Implements `ResponseObject` for JSON type data.
+- `ErrorResponse` - Implements a JSON based error response.
+- `RedirectResponse` - Initiates a browser redirect.
+
+In our controller example above, we were returning regular objects.  By default, Layer8 will wrap any response that isn't an instance of a `ResponseObject` in a `JSONResponse`.  Here's how we'd initiate a redirect in a controller method:
+
 ```
-new Endpoint('/', Endpoint.POST, [body()])
+async index(session, urlParams, queryArgs) {
+  return new RedirectResponse('https://www.newsite.com);
+}
 ```
-
-We are supplying an array of middlewares, in this case, the `koa-body` body parser, which will automatically extract supplied form data and make it available on the koa context as `ctx.request.body`.  We then perform validation in the `validatePost` method, using 3 accessors, each of which defines a piece of data to be validated, and the validation technique.  We'll get more into accessors later.
-
-Once the controller is written, its routings get added to the server by instantiating the controller and passing in into the `Server` constructor in the array of controllers.  In this example we would do:
+## Headers and cookies
+Request headers and cookies are available on the Koa context object, please consult the Koa documentation for their use.  Setting response headers and cookies are carried out through the `ResponseObject`.  Headers are set by passing a javascript object (key value pairs) to the respective `ResponseObject` subclass's constructor method.  Cookies are set by passing an array of one or more `Cookie` objects to the `ResponseObject`.  Below illustrates through example, how this would be accomplished with a `JSONResponse` object.
 
 ```
-  const { Server } = require('layer8');
-  const TestController = require('./controllers/TestController`)
+  const {
+    Cookie,
+    JSONResponse
+  } = require('layer8');
 
-  const appServer = new Server(
-    [
-      new TestController(),
+  const myResponse = new JSONResponse(
+    {                                         // The response body
+      message: 'hello world'
+    },
+    {                                         // Response headers
+      'User-Agent', 'my cool client',
+    },
+    [                                         // Response cookies
+      new Cookie(
+        'session',
+        'some serialized data',
+        new Date(new Date().getTime + (1000 * 60 * 60 * 24)),
+        'mydomain.com',
+      )
     ],
-  );
-
-  appServer.server.listen(8888);
+  )
 ```
-
-## Endpoints
-The `Endpoint` class defines an endpoint's path extension, HTTP method, and any middlewares to execute when a visitor visits that specific endpoint.  Endpoint instances are passed to the `Controller` at the time of instantiation and determine which routings are available to the controller.
-
-The `Endpoint` constructor takes the following arguments:
-
-```
-  @param {string} relativePath - The path of the endpoint relative to the controller's path.
-  @param {string} method - The HTTP method which the endpoint accepts (See Endpoint.METHODS)
-  @param {Array|null} [middlewares=null] - An array of middlewares to apply to the endpoint (or null for none)
-```
-
-Here are a few example endpoints to illustrate their construction:
-
-```
-/* An endpoint with no change relative to the controller's path, allowing the HTTP GET method */
-
-new Endpoint('/', Endpoint.GET);
-```
-
-```
-/* An endpoint with no change relative to the controller's path, allowing the HTTP GET method, receiving a path argument representing an entity ID.
-*/
-
-new Endpoint('/:id', Endpoint.GET);
-```
-
-```
-/* An endpoint with /user appended to the controller's path, allowing the HTTP PUT method, receiving a path argument representing an entity ID */
-
-new Endpoint('/user/:id', Endpoint.PUT);
-```
-
-```
-/* An endpoint with /user appended to the controller's path, allowing the HTTP POST method, receiving multiple path arguments */
-
-new Endpoint(':parent/user/:id', Endpoint.POST);
-```
-
-In the examples above, you can see that arguments can be defined in the URL path by prefixing a name with a `:`.  The names can be anything you like, and these path arguments will be exposed on the koa context as `ctx.params`.  They can be validated just like any other input data using the accessors.
-
-Endpoints are added to a `Controller` via its constructor as seen below:
-
-```
-  constructor() {
-    super(
-      '/example',
-      [
-        new Endpoint('/', Endpoint.INDEX),
-        new Endpoint('/:id', Endpoint.GET),
-        new Endpoint('/:id', Endpoint.PUT),
-        new Endpoint('/:id', Endpoint.POST),
-      ]
-    );
-  }
-```
-
-## Accessors
-Subclasses of the `Accessor` object perform data translation and validation.  They are called accessors because they are used to access data within objects.  Layer8 provides several useful accessors out of the box, but you can create new ones in order to provide any desired translation/validation by simply subclassing the `Accessor` object, or any of its subclasses, and overriding the `validate` method.
-
-The following accessors are provided by Layer8
-
-- ArrayAccessor - used to validate an array of data
-- EmailAccessor - used to validate email addresses
-- EnumAccessor - used to validate an item as a member of a known collection of items
-- IntAccessor - used to validate integers
-- NumericAccessor - used to validate any numeric data
-- PasswordAccessor - used to validate passwords with varying complexity
-- PathEntityIDAccessor - used to validate entity IDs which may be represented as strings, as part of the URL path, etc.
-- PositiveIntAccessor - used to validate positive integers
-- PositiveNumericAccessor - used to validate positive numeric values
-- StringAccessor - used to validate strings
-
-Accessors make it very easy to define endpoint inputs and their respective data types and ranges.  They are crucial as a first line of defense against bad client data, ensuring that only expected data is passed to the server.
-
-In the [example application's accessors](https://github.com/hashibuto/layer8/tree/master/src/examples/SimpleServer/src/api), one set of accessors has been defined per endpoint (where validation is present).
-
-The [SignupAccessor](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/api/SignupAccessors.js) provides an excellent illustration of using both the canned accessor objects, as well as implementing a new one for a custom validation job.
-
-In the example:
-```
-SignupAccessors.FIRST_NAME = new StringAccessor('first_name').range(1, 50).trim().noSpaces();
-SignupAccessors.LAST_NAME = new StringAccessor('last_name').range(1, 50).trim().noSpaces();
-SignupAccessors.EMAIL = new EmailAccessor('email').trim();
-SignupAccessors.PASSWORD = new StringAccessor('password').range(8, 200);
-```
-
-We can see that 4 simple accessors are instantiated and will be reused by the controller on each request.  The accessors define the attribute where the data can be found on the target object, using a dot delimited notation, as well as other key information such as whether or not the data is required, any default value, or any length constraints, etc.  You will have to review the specific arguments of each type of accessor in order to determine its specific use.
-
-The accessors would subsequently be used in the specific validation method on the controller.  For instance, if we were validating signup data as defined by the accessors above, we'd place them within the `validatePost` method, in order to validate the input form data, and provide output via an array to the execute method.
-
-```
-class SignupController extends Controller {
-
-  .
-  .
-  .
-
-  async validatePost(ctx, session) {
-    // Validates the input data parsed from the form data
-
-    return Accessor.validateAll(
-      ctx.request.body,
-      [
-        SignupAccessors.FIRST_NAME,
-        SignupAccessors.LAST_NAME,
-        SignupAccessors.EMAIL,
-        SignupAccessors.PASSWORD,
-      ]
-    );
-  }
-
-  async executePost(session, firstName, lastName, email, password) {
-    .
-    .
-    .
-  }
-```
-
-The `Accessor.validateAll` helper method simply takes an input object, and an array of accessors, then returns an array of validated data, in the same order that the accessors were provided.
-
-Nested data can be accessed using `.` separated notation, such as:
-```
-  new PositiveNumericAccessor('user.job.salary')
-```
-
-In which case the object would be recursively traversed until the data is acquired.  Accessors can also be used directly without the `Accessor.validateAll` helper method.
-
-```
-  async validatePost(ctx, session) {
-    const body = ctx.request.body;
-    return [
-      SignupAccessors.FIRST_NAME.validate(body),
-      SignupAccessors.LAST_NAME.validate(body),
-      .
-      .
-      .
-    ]
-  }
-```
-
-It is important to note, that an `Accessor` instantiated with a `null` key will attempt to validate the object directly when `validate` is invoked, rather than attempting to look up the value on a target object.  This is useful when using accessors to evaluate arrays of items, etc., where object lookup is not necessary.
 
 ## Authenticators
 Layer8 provides some authentication mechanisms, in addition to some utility classes to aid in the process of authentication.  The authentication class provided out of the box is:
@@ -378,45 +295,6 @@ In the above example, there are a couple of things going on.  One, we've impleme
 
 `TokenAuthenticator` expects a bearer token located in the `Authorization` header.  Typically the client will provide this token after initial authentication of the user's credentials have taken place and a token is created.
 
-## Response objects
-Each execution method of a controller should return a `ResponseObject`.  A `ResponseObject` is used to format and return data to the client, passing necessary headers to indicate content type, etc.  A controller method that does not return a `ResponseObject` will return an empty body.  This is acceptable when there is simply no data to return.
-
-Layer8 implements a few subclasses of the `ResponseObject` in order to generate some of the common response types.
-
-- `ResponseObject` - A text/html response for rendering pages, etc
-- `JSONResponse` - Used to return JSON data to the client
-- `RedirectResponse` - Issues a redirect to the client
-- `ErrorResponse` - Indicates an error and takes the form of a JSON payload
-
-All of the above subclasses of the `ResponseObject` can be passed headers and cookies to set on the response.  See each individual class for constructor specifics.
-
-## Headers and cookies
-Request headers and cookies are available on the Koa context object, please consult the Koa documentation for their use.  Setting response headers and cookies are carried out through the `ResponseObject`.  Headers are set by passing a javascript object (key value pairs) to the respective `ResponseObject` subclass's constructor method.  Cookies are set by passing an array of one or more `Cookie` objects to the `ResponseObject`.  Below illustrates through example, how this would be accomplished with a `JSONResponse` object.
-
-```
-  const {
-    Cookie,
-    JSONResponse
-  } = require('layer8');
-
-  const myResponse = new JSONResponse(
-    {                                         // The response body
-      message: 'hello world'
-    },
-    {                                         // Response headers
-      'User-Agent', 'my cool client',
-    },
-    [                                         // Response cookies
-      new Cookie(
-        'session',
-        'some serialized data',
-        new Date(new Date().getTime + (1000 * 60 * 60 * 24)),
-        'mydomain.com',
-      )
-    ],
-  )
-```
-
 ## Helper utilities
 Layer8 comes with one basic set of helper utilities used to facilitate authentication and secure password storage.  These are the `HashUtils`.  See both the [SessionService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/SessionService.js) and [UserService](https://github.com/hashibuto/layer8/blob/master/src/examples/SimpleServer/src/services/UserService.js) in the example application for examples on using the `HashUtils` for password hash and salting as well as verification, and session token creation.
 
@@ -431,8 +309,7 @@ const { WebSocketServer } = require('layer8');
 
 const webSocketServer = new WebSocketServer(
   [
-    new MovementMessageProcessor(),
-
+    new MovementMessageProcessor(Move),
   ],
   [
     PerMessageDeflateExtension,
@@ -506,30 +383,160 @@ Handler methods in the message processor will only be invoked once a websocket h
 
 `onDisconnect` is called whenever a client disconnects (regardless of which side initiated the disconnection), and `onRead` is called whenever a complete data message is received.  Fragmented messages are buffered until complete and then forwarded to the message processor.  See `FrameBuffer` for maximum buffering restrictions.
 
-The `EnumeratedMessageProcessor` is implemented slightly differently  The constructor and `onConnect` and `onDisconnect` signatures are the same, but the way messages are handled differs slightly.  Observe the following example taken partially from the example server:
+The `EnumeratedMessageProcessor` is implemented slightly differently  The constructor and `onConnect` and `onDisconnect` signatures are the same, but the way messages are handled differs slightly.  First, we need to define the enumeration of message types this processor will accept.  We use [EnsureData](https://www.npmjs.com/ensuredata)'s `EnumType` and `AbstractDataDefinition` to accomplish this:
+
+```
+const { EnumType } = require('ensuredata');
+
+class InstantMessageEnumDef extends EnumType {
+
+  static TEXT_MESSAGE = "TEXT_MESSAGE";
+  static TEXT_BROADCAST = "TEXT_BROADCAST";
+
+  static COLLECTION = [
+    InstantMessageEnumDef.TEXT_MESSAGE,
+    InstantMessageEnumDef.TEXT_BROADCAST,
+  ]
+
+  get collection() {
+    return InstantMessageEnumDef.COLLECTION;
+  }
+
+}
+
+module.exports = InstantMessageEnumDef;
+```
+Above, we've enumerated the message types `TEXT_MESSAGE` and `BROADCAST_MESSAGE`.  Next, let's create a base definition that will be used to generically validate the message, and pick the appropriate concrete definition to perform full validation.
+
+```
+const InstantMessageEnumDef = require('./InstantMessageEnumDef');
+const { EnumeratedMessageDefinition } = require("layer8");
+const {
+  StringType,
+} = require('ensuredata');
+
+class InstantMessageDef extends EnumeratedMessageDefinition {
+
+  get enumTypeDef() {
+    return InstantMessageEnumDef;
+  }
+
+  get definition() {
+    return {
+      ...super.definition,
+      text: new StringType().maxLength(255),
+    }
+  }
+
+}
+
+module.exports = InstantMessageDef;
+```
+Above, we've established the common property `text`, as well as the `EnumType` used to validate the message type.  Next, we'll create one subclass for each of the available message types for this message processor.
+
+```
+const InstantMessageDef = require("./InstantMessageDef");
+const InstantMessageEnumDef = require('./InstantMessageEnumDef');
+
+class TextMessageDef extends InstantMessageDef {
+
+  get typeName() {
+    return InstantMessageEnumDef.TEXT_MESSAGE;
+  }
+
+}
+
+module.exports = TextMessageDef;
+```
+and
+
+```
+const InstantMessageDef = require("./InstantMessageDef");
+const InstantMessageEnumDef = require('./InstantMessageEnumDef');
+const { BooleanType } = require('ensuredata');
+
+class BroadcastMessageDef extends InstantMessageDef {
+
+  static DEFINITION = {
+    echoBack: new BooleanType(false)
+  }
+
+  get definition() {
+    return {
+      ...super.definition,
+      ...BroadcastMessageDef.DEFINITION
+    }
+  }
+
+  get typeName() {
+    return InstantMessageEnumDef.TEXT_BROADCAST;
+  }
+
+}
+
+module.exports = BroadcastMessageDef;
+```
+Both of the examples above extend the `InstantMessageDef` class, and implement the `typeName` property, which returns their specific type, from the enumeration of types.  Since these defintions involve inheritance, we need to register them (base must be registered first), in order for the system to know which concrete message definition is used to validate which message type.  It's convenient to do this all in one place:
+
+```
+const InstantMessageDef = require('./InstantMessageDef');
+const TextMessageDef = require('./TextMessageDef');
+const BroadcastMessageDef = require('./BroadcastMessageDef');
+const { DefinitionRegistry } = require('ensuredata');
+
+class ValidatorRegistration {
+
+  static DEFINITIONS = [
+    InstantMessageDef,
+    TextMessageDef,
+    BroadcastMessageDef,
+  ]
+
+  static register() {
+    console.log('Validators registered');
+    ValidatorRegistration.DEFINITIONS.forEach(definition => DefinitionRegistry.register(definition));
+  }
+
+}
+
+module.exports = ValidatorRegistration;
+
+...
+
+# Before starting the server, probably in the main module...
+ValidatorRegistration.register();
+```
+
+Now onto the message processor itself:
+
 
 ```
 const {
   EnumeratedMessageProcessor,
-  EnumeratedMessage
 } = require("layer8");
 const SessionService = require('../services/SessionService');
+const InstantMessageDef = require('../api/InstantMessageDef');
+const InstantMessageEnumDef = require('../api/InstantMessageEnumDef');
 
-class TickerMessageProcessor extends EnumeratedMessageProcessor {
+class IMMessageProcessor extends EnumeratedMessageProcessor {
+
   constructor() {
-    super('/ticker', 'accountId', true);
+    super('/ticker', InstantMessageDef, 'accountId', true);
   }
 
-  static onTextMessage(session, socket, body) {
+  static onTextMessage(session, socket, data) {
     console.log(`Client ${session.user.email} received a text message:\n${body.text}`)
   }
 
+  static onTextBroadcast(session, socket, data) {
+    console.log(`Client ${session.user.email} sent a broadcast message:\n${body.text}`)
+    this.broadcast(body);
+  }
+
   async onConnect(session, socket) {
-    console.log(`Client ${session.user.email} joined via websocket`)
   }
 
   async onDisconnect(session, socket) {
-    console.log(`Client ${session.user.email} disconnected from websocket server`)
   }
 
   async authenticate(token) {
@@ -538,42 +545,31 @@ class TickerMessageProcessor extends EnumeratedMessageProcessor {
   }
 
   get messageHandlerMapping() {
-    return TickerMessageProcessor.MESSAGE_HANDLER_MAPPING;
+    return IMMessageProcessor.MESSAGE_HANDLER_MAPPING;
   }
 }
 
-TickerMessageProcessor.MESSAGE_HANDLER_MAPPING = {
-  TEXT_MESSAGE: TickerMessageProcessor.onTextMessage,
-};
+IMMessageProcessor.MESSAGE_HANDLER_MAPPING = Object.fromEntries([
+  [InstantMessageEnumDef.TEXT_MESSAGE, IMMessageProcessor.onTextMessage],
+  [InstantMessageEnumDef.TEXT_BROADCAST, IMMessageProcessor.onTextBroadcast],
+]);
 
-module.exports = TickerMessageProcessor;
+module.exports = IMMessageProcessor;
 ```
 
-You will notice the property `messageHandlerMapping` which returns `TickerMessageProcessor.MESSAGE_HANDLER_MAPPING`.  This property returns a mapping between any given message type, and corresponding handler.  In this example we only have one registered message type, but a more sophisticated message processor may need to support multiple message types originating from the client.  This mapping allows the message processor to easily pick a handler method for a given message type.  Consider the following JSON payload:
+In the example above, we provide the data definition class as `InstantMessageDef`, which is the super class for processing messages of this type.  The appropriate subclass will be chosen at runtime when the message arrives, based on the embedded message type.
 
-```
-{
-  "type": "TEXT_MESSAGE",
-  "body": {
-    "text": "Hello there server"
-  }
-}
-```
-
-This message would automatically be deserialized to a `EnumeratedMessage` object, which has a couple of standard properties, such as `type`, and `body`.  The `EnumeratedMessageProcessor` uses the `type` property in order to determine to which handler to route the message.  In the case above, the `body` portion is then routed to the static handler `TickerMessageProcessor.onTextMessage`.
+You will notice the property `messageHandlerMapping` which returns `IMMessageProcessor.MESSAGE_HANDLER_MAPPING`.  This property returns a mapping between any given message type, and corresponding handler.
 
 Handlers can be synchronous or asynchronous.  The `EnumeratedMessageProcessor` will always attempt to wait on an asynchronous handler.
 
 ```
-static async onTextMessage(session, socket, body) {
+static async onTextMessage(session, socket, data) {
 }
 ```
-
-Similar to the `MessageProcessor`'s `onRead` method, each handler receives a `session`, `socket`, and instead of `data`, `body` represents the `body` portion of the `EnumeratedMessage` which will be automatically deserialized from a JSON string.
 
 ## Authentication
 Authentication is handled using the `async authenticate(token)` method.  The client would provide an authentication token in the endpoint as a query argument.  Specifically `?auth_token={authentication token}`.  The `authenticate` method will then receive this token and authentication must be implemented by the developer.  A `null` return value indicates failed authentication and the connection will be closed by the server.
 
 ## Protocol extensions
-
 At present, Layer8 only ships with `PerMessageDeflateExtension` which is used to support the `per_message_deflate` extension, enabling frame compression.  Additional extensions can be authored by the developer by subclassing the `ProtocolExtension` class.

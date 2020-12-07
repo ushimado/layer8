@@ -37,7 +37,7 @@ class WebServer {
         if (verbose === true) {
           console.debug(`${controller.basePath} ${endpoint.method}`);
         }
-        let routerMethodName, controllerValidateMethodName, controllerExecuteMethodName;
+        let routerMethodName, controllerExecuteMethodName;
         if (endpoint.method === Endpoint.INDEX) {
           routerMethodName = 'get';
           controllerExecuteMethodName = 'index';
@@ -58,29 +58,10 @@ class WebServer {
 
         router[routerMethodName](
           endpoint.relativePath, ...endpoint.processingMethods, async (ctx) => {
-            const session = ctx.state.session === undefined ? null : ctx.state.session;
 
             let args;
             try {
-              const queryArgs = endpoint.processQueryArgs(ctx.request.query);
-              const urlParams = endpoint.processUrlParams(ctx.params);
-
-              if (!Endpoint.METHODS_WITHOUT_PAYLOAD.has(endpoint.method)) {
-                // There could be a payload
-                let items;
-                if (controller.dataDefinition === null) {
-                  items = null;
-                } else {
-                  let body = ctx.request.body;
-                  if (!Array.isArray(body)) {
-                    body = [body];
-                  }
-                  items = body.map(item => controller.dataDefinition.test(item));
-                }
-                args = [session, urlParams, queryArgs, items];
-              } else {
-                args = [session, urlParams, queryArgs];
-              }
+              args = controller.prepareArguments(ctx);
             } catch(e) {
               if (e instanceof ValidationError) {
                 this._createErrorResponse(
@@ -127,7 +108,8 @@ class WebServer {
               ) return;
             }
 
-            let responseBody = await controller[controllerExecuteMethodName](
+            let responseBody = await controller.invokeHandler(
+              ctx,
               ...args
             ).catch(async e => {
               this._createErrorResponse(
