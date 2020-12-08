@@ -8,6 +8,8 @@ const JSONResponse = require('./responseTypes/JSONResponse');
 
 class WebServer {
 
+  static PRIOR_TO_LISTEN_ERROR = "must be defined define prior to invoking listen";
+
   /**
    * Creates an instance of WebServer.
    *
@@ -177,6 +179,12 @@ class WebServer {
     this.__isListening = false;
   }
 
+  /**
+   * Initiates the server listening on the specified port.
+   *
+   * @param {Number} port
+   * @memberof WebServer
+   */
   listen(port) {
     assert(this.__isListening === false);
     this.__isListening = true;
@@ -188,11 +196,16 @@ class WebServer {
     this.__server.listen(port);
   }
 
-  get verbose() {
-    return this.__verbose;
-  }
-
+  /**
+   * Specifies an array of middlewares to wrap every endpoint exposed by the server.
+   *
+   * @param {Array} middlewares - Array of middlewares
+   * @returns
+   * @memberof WebServer
+   */
   middlewares(middlewares) {
+    assert(Array.isArray(middlewares));
+    assert(middlewares.length > 0);
     assert(this.__isListening === false, WebServer.PRIOR_TO_LISTEN_ERROR);
     assert(this.__middlewares.length === 0);
     assert(middlewares.length > 0);
@@ -201,6 +214,15 @@ class WebServer {
     return this;
   }
 
+  /**
+   * Sets an execution begin handler.  This handler is invoked when an endpoint's handler method
+   * is invoked.  This invocation happens after data validation is successful.  If data validation
+   * fails, this method does not get invoked.
+   *
+   * @param {*} callback
+   * @returns
+   * @memberof WebServer
+   */
   onExecutionBegin(callback) {
     assert(this.__isListening === false, WebServer.PRIOR_TO_LISTEN_ERROR);
     assert(this.__onExecutionBegin === null);
@@ -209,6 +231,14 @@ class WebServer {
     return this;
   }
 
+  /**
+   * Sets an execution success handler.  This handler is invoked when an endpoint's handler method
+   * successfully returns.
+   *
+   * @param {*} callback
+   * @returns
+   * @memberof WebServer
+   */
   onExecutionSuccess(callback) {
     assert(this.__isListening === false, WebServer.PRIOR_TO_LISTEN_ERROR);
     assert(this.__onExecutionSuccess === null);
@@ -217,8 +247,16 @@ class WebServer {
     return this;
   }
 
+  /**
+   * Sets an execution failure handler.  This handler is invoked when an endpoint's handler method
+   * throws an exception.
+   *
+   * @param {*} callback
+   * @returns
+   * @memberof WebServer
+   */
   onExecutionFail(callback) {
-    assert(this.__isListening === false, "define prior to invoking listen");
+    assert(this.__isListening === false, WebServer.PRIOR_TO_LISTEN_ERROR);
     assert(this.__onExecutionFail === null);
     this.__onExecutionFail = callback;
 
@@ -226,12 +264,22 @@ class WebServer {
   }
 
   /**
+   * Returns true if the server is operating in verbose mode.
+   *
+   * @readonly
+   * @memberof WebServer
+   */
+  get verbose() {
+    return this.__verbose;
+  }
+
+  /**
    * Sets error response on the context
    *
-   * @param {*} ctx - Koa context
-   * @param {number} statusCode - HTTP status code
-   * @param {string} type - Error code / class
-   * @param {string} message - Error message
+   * @param {Object} ctx - Koa context
+   * @param {Number} statusCode - HTTP status code
+   * @param {String} type - Error code / class
+   * @param {String} message - Error message
    * @memberof WebServer
    */
   _createErrorResponse(ctx, statusCode, type, message) {
@@ -245,7 +293,5 @@ class WebServer {
   }
 
 }
-
-WebServer.PRIOR_TO_LISTEN_ERROR = "define prior to invoking listen";
 
 module.exports = WebServer;

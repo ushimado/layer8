@@ -46,7 +46,10 @@
           };
           webSocket.onmessage = (event) => {
             const message = JSON.parse(event.data);
-            if (message.type === 'TEXT_MESSAGE') {
+            if (
+              message.type === 'TEXT_MESSAGE' ||
+              message.type === 'TEXT_BROADCAST'
+            ) {
               var tickerDiv = document.getElementById('ticker');
               tickerDiv.innerHTML = message.text;
             }

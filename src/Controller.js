@@ -3,6 +3,11 @@ const Endpoint = require('./Endpoint');
 const { AbstractDataDefinition } = require('ensuredata');
 const assert = require('assert');
 
+/**
+ * Implements the base for a web service controller.
+ *
+ * @class Controller
+ */
 class Controller {
 
   static METHOD_TO_NAME = Object.fromEntries([
@@ -18,8 +23,10 @@ class Controller {
    *
    * @param {class} dataDefinition - The data definition class used to validate and complete
    * data consumed by this controller.
-   * @param {string} basePath
-   * @param {Array} endpoints
+   * @param {string} basePath - The controller's base path in the URL.  Endpoints will begin defining
+   * their specific paths from this point.
+   * @param {Array} endpoints - An array of endpoint instances, serviced by the controller.
+   * @param {?Array} middlewares - An array of middlewares used to wrap the endpoint method
    * @memberof Controller
    */
   constructor(dataDefinition, basePath, endpoints, middlewares=null) {
@@ -35,25 +42,21 @@ class Controller {
     assert(Array.isArray(endpoints), 'Argument must be an array of endpoint objects');
     assert(endpoints.length > 0, 'A controller must expose at least one endpoint');
 
-    const endpointByMethod = {};
+    const usedMethods = new Set();
     endpoints.forEach(endpoint => {
       assert(endpoint instanceof Endpoint, 'Each endpoint must be an Endpoint object instance');
       assert(
-        !(endpoint.method in endpointByMethod),
+        !usedMethods.has(endpoint.method),
         `Controller cannot expose ${endpoint.method} more than once`
       );
-      endpointByMethod[endpoint.method] = endpoint;
+      usedMethods.add(endpoint.method);
     });
 
-    this.basePath = basePath;
-    this.endpoints = endpoints;
+    this.__basePath = basePath;
+    this.__endpoints = endpoints;
     this.__endpointByMethod = {};
     this.__middlewares = middlewares === null ? [] : middlewares;
     assert(Array.isArray(this.__middlewares));
-  }
-
-  get controllerProcessors() {
-    return this.__middlewares;
   }
 
   /**
@@ -149,6 +152,38 @@ class Controller {
     throw new NotImplementedError('The delete method is not implemented');
   }
 
+  /**
+   * Returns an array of endpoints associated with the controller
+   *
+   * @readonly
+   * @returns {Array}
+   * @memberof Controller
+   */
+  get endpoints() {
+    return this.__endpoints;
+  }
+
+  /**
+   * Returns the base URL path of the controller
+   *
+   * @readonly
+   * @returns {String}
+   * @memberof Controller
+   */
+  get basePath() {
+    return this.__basePath;
+  }
+
+  /**
+   * Returns an array of middleware functions used to wrap each endpoint handler invocation
+   *
+   * @readonly
+   * @returns {Array}
+   * @memberof Controller
+   */
+  get controllerProcessors() {
+    return this.__middlewares;
+  }
 }
 
 module.exports = Controller;
