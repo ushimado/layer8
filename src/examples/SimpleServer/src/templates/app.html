@@ -36,7 +36,7 @@
             'Authorization': 'Bearer ' + authToken,
           };
 
-          var webSocket = new WebSocket("ws://localhost:8889/ticker?auth_token=" + authToken);
+          var webSocket = new WebSocket("ws://localhost:8889/instant_message?auth_token=" + authToken);
           webSocket.onopen = (event) => {
             socketReady = true;
             webSocket.send(JSON.stringify({

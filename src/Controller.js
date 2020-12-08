@@ -68,12 +68,10 @@ class Controller {
     throw new NotImplementedError('The index method is not implemented');
   }
 
-  async prepareArguments(ctx) {
-    const method = ctx.method;
+  prepareArguments(ctx, endpoint) {
+    const method = endpoint.method;
     assert(method in Controller.METHOD_TO_NAME);
-    assert(method in this.__endpointByMethod[method]);
 
-    const endpoint = this.__endpointByMethod[method];
     const queryArgs = endpoint.processQueryArgs(ctx.request.query);
     const urlParams = endpoint.processUrlParams(ctx.params);
     const session = ctx.state.session === undefined ? null : ctx.state.session;
@@ -94,10 +92,10 @@ class Controller {
     return [session, urlParams, queryArgs];
   }
 
-  async invokeHandler(ctx, args) {
-    const method = ctx.method;
+  async invokeHandler(endpoint, args) {
+    const method = endpoint.method;
     assert(method in Controller.METHOD_TO_NAME);
-    const handler = Controller.METHOD_TO_NAME[method];
+    const handler = this[Controller.METHOD_TO_NAME[method]];
     return handler(...args);
   }
 

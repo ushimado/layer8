@@ -56,6 +56,9 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
     this.sessionKey = sessionKey;
     this.kickDuplicateSessionKey = kickDuplicateSessionKey;
     this.sessionKeyMapping = {};
+
+    // Store it
+    this.__messageHandlerMapping = this.messageHandlerMapping;
   }
 
   /**
@@ -90,7 +93,7 @@ class EnumeratedMessageProcessor extends JSONMessageProcessor {
       // Processor is receiving data but was not configured to receive
       socket.socket.end();
     }
-    const messageMapping = this.messageHandlerMapping;
+    const messageMapping = this.__messageHandlerMapping;
     await messageMapping[data.type](session, socket, data);
   }
 

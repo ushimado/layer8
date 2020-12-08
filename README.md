@@ -524,11 +524,11 @@ class IMMessageProcessor extends EnumeratedMessageProcessor {
     super('/ticker', InstantMessageDef, 'accountId', true);
   }
 
-  static onTextMessage(session, socket, data) {
+  async onTextMessage(session, socket, data) {
     console.log(`Client ${session.user.email} received a text message:\n${body.text}`)
   }
 
-  static onTextBroadcast(session, socket, data) {
+  async onTextBroadcast(session, socket, data) {
     console.log(`Client ${session.user.email} sent a broadcast message:\n${body.text}`)
     this.broadcast(body);
   }
@@ -545,23 +545,22 @@ class IMMessageProcessor extends EnumeratedMessageProcessor {
   }
 
   get messageHandlerMapping() {
-    return IMMessageProcessor.MESSAGE_HANDLER_MAPPING;
+    return Object.fromEntries([
+      [InstantMessageEnumDef.TEXT_MESSAGE, (...args) => this.onTextMessage(...args)],
+      [InstantMessageEnumDef.TEXT_BROADCAST, (...args) => this.onTextBroadcast(...args)],
+    ]);
   }
-}
 
-IMMessageProcessor.MESSAGE_HANDLER_MAPPING = Object.fromEntries([
-  [InstantMessageEnumDef.TEXT_MESSAGE, IMMessageProcessor.onTextMessage],
-  [InstantMessageEnumDef.TEXT_BROADCAST, IMMessageProcessor.onTextBroadcast],
-]);
+}
 
 module.exports = IMMessageProcessor;
 ```
 
 In the example above, we provide the data definition class as `InstantMessageDef`, which is the super class for processing messages of this type.  The appropriate subclass will be chosen at runtime when the message arrives, based on the embedded message type.
 
-You will notice the property `messageHandlerMapping` which returns `IMMessageProcessor.MESSAGE_HANDLER_MAPPING`.  This property returns a mapping between any given message type, and corresponding handler.
+You will notice the property `messageHandlerMapping` which returns `IMMessageProcessor.MESSAGE_HANDLER_MAPPING`.  This property returns a mapping between any given message type, and corresponding handler.  Since `messageHandlerMapping` is called once during object instantiation and stored internally, it is important that the data returned is not dynamic in nature.
 
-Handlers can be synchronous or asynchronous.  The `EnumeratedMessageProcessor` will always attempt to wait on an asynchronous handler.
+Handlers can be synchronous or asynchronous.  The `EnumeratedMessageProcessor` will always attempt to wait on an asynchronous handler.  Notice we pass `(...args) => this.onTextMessage(...args)` instead of just `this.onTextMessage`.  This is because we need the call to the handler to be bound to the message processor instance.  Otherwise it gets bound to the mapping object, and we lose access to the processor.
 
 ```
 static async onTextMessage(session, socket, data) {

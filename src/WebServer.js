@@ -37,23 +37,11 @@ class WebServer {
         if (verbose === true) {
           console.debug(`${controller.basePath} ${endpoint.method}`);
         }
-        let routerMethodName, controllerExecuteMethodName;
+        let routerMethodName;
         if (endpoint.method === Endpoint.INDEX) {
           routerMethodName = 'get';
-          controllerExecuteMethodName = 'index';
-        } else if (endpoint.method === Endpoint.GET) {
-          routerMethodName = 'get';
-          controllerExecuteMethodName = 'get';
-        } else if (endpoint.method === Endpoint.POST) {
-          routerMethodName = 'post';
-          controllerExecuteMethodName = 'post';
-        } else if (endpoint.method === Endpoint.PUT) {
-          routerMethodName = 'put';
-          controllerExecuteMethodName = 'put';
         } else {
-          assert(endpoint.method === Endpoint.DELETE, endpoint.method);
-          routerMethodName = 'delete';
-          controllerExecuteMethodName = 'delete';
+          routerMethodName = endpoint.method.toLowerCase();
         }
 
         router[routerMethodName](
@@ -61,7 +49,7 @@ class WebServer {
 
             let args;
             try {
-              args = controller.prepareArguments(ctx);
+              args = controller.prepareArguments(ctx, endpoint);
             } catch(e) {
               if (e instanceof ValidationError) {
                 this._createErrorResponse(
@@ -87,6 +75,7 @@ class WebServer {
               return;
             }
 
+            const session = args[0];
             if (this.__onExecutionBegin !== null) {
               if (
                 await this.__onExecutionBegin(ctx, session)
@@ -108,10 +97,7 @@ class WebServer {
               ) return;
             }
 
-            let responseBody = await controller.invokeHandler(
-              ctx,
-              ...args
-            ).catch(async e => {
+            let responseBody = await controller.invokeHandler(endpoint, args).catch(async e => {
               this._createErrorResponse(
                 ctx,
                 500,

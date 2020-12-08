@@ -7,7 +7,7 @@ const InstantMessageEnumDef = require('../api/InstantMessageEnumDef');
 
 class IMMessageProcessor extends EnumeratedMessageProcessor {
   constructor() {
-    super('/ticker', InstantMessageDef, 'accountId', true);
+    super('/instant_message', InstantMessageDef, 'accountId', true);
 
     setInterval(
       () => {
@@ -21,13 +21,13 @@ class IMMessageProcessor extends EnumeratedMessageProcessor {
     );
   }
 
-  static onTextMessage(session, socket, data) {
+  async onTextMessage(session, socket, data) {
     console.log(`Client ${session.user.email} received a text message:\n${data.text}`)
   }
 
-  static onTextBroadcast(session, socket, data) {
+  async onTextBroadcast(session, socket, data) {
     console.log(`Client ${session.user.email} sent a broadcast message:\n${data.text}`)
-    this.broadcast(data);
+    await this.broadcast(data);
   }
 
   async onConnect(session, socket) {
@@ -44,7 +44,10 @@ class IMMessageProcessor extends EnumeratedMessageProcessor {
   }
 
   get messageHandlerMapping() {
-    return IMMessageProcessor.MESSAGE_HANDLER_MAPPING;
+    return Object.fromEntries([
+      [InstantMessageEnumDef.TEXT_MESSAGE, (...args) => this.onTextMessage(...args)],
+      [InstantMessageEnumDef.TEXT_BROADCAST, (...args) => this.onTextBroadcast(...args)],
+    ]);
   }
 }
 
@@ -61,10 +64,5 @@ IMMessageProcessor.RANDOM_MESSAGES = [
   "Can you spot the rabbit in the moon?",
   "I'm going to visit a cow farm today, how about you?",
 ];
-
-IMMessageProcessor.MESSAGE_HANDLER_MAPPING = Object.fromEntries([
-  [InstantMessageEnumDef.TEXT_MESSAGE, IMMessageProcessor.onTextMessage],
-  [InstantMessageEnumDef.TEXT_BROADCAST, IMMessageProcessor.onTextBroadcast],
-]);
 
 module.exports = IMMessageProcessor;
