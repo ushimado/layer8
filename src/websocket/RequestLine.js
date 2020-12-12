@@ -59,6 +59,17 @@ class RequestLine {
     this.url = url;
     this.protocol = protocol;
   }
+
+  /**
+   * Serializes the request line to a string
+   *
+   * @returns {String}
+   * @memberof RequestLine
+   */
+  serialize() {
+    const reqUrl = [this.url.pathname, this.url.search].join('');
+    return `${this.method} ${reqUrl} ${this.protocol}\r\n`;
+  }
 }
 
 module.exports = RequestLine;

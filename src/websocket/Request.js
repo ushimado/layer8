@@ -48,21 +48,44 @@ class Request {
    * @memberof Request
    */
   constructor(requestLine, headers) {
-      assert(requestLine instanceof RequestLine);
-      assert(headers instanceof Headers)
+    assert(requestLine instanceof RequestLine);
+    assert(headers instanceof Headers)
 
-      this.url = requestLine.url;
-      this.method = requestLine.method;
-      this.headers = headers;
+    this.url = requestLine.url;
+    this.method = requestLine.method;
+    this.headers = headers;
+    this.requestLine = requestLine;
 
-      const queryString = requestLine.url.search;
-      if (queryString.length === 0) {
-        this.queryArgs = {}
-      } else {
-        // Parse and skip the '?' portion
-        this.queryArgs = querystring.parse(queryString.slice(1));
-      }
+    const queryString = requestLine.url.search;
+    if (queryString.length === 0) {
+      this.queryArgs = {}
+    } else {
+      // Parse and skip the '?' portion
+      this.queryArgs = querystring.parse(queryString.slice(1));
+    }
 
+  }
+
+  /**
+   * Serializes a request to a string
+   *
+   * @returns {String}
+   * @memberof Request
+   */
+  serialize() {
+    const lines = [
+      this.requestLine.serialize()
+    ];
+
+    const serHeaders = this.headers.serialize();
+    if (serHeaders.length > 0) {
+      lines.push(serHeaders);
+    }
+
+    // Final terminating CRLF
+    lines.push('\r\n');
+
+    return lines.join('');
   }
 
 }

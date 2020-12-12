@@ -162,7 +162,7 @@ class PerMessageDeflateExtension extends ProtocolExtension {
     let serverMaxWindowBits = zlib.Z_DEFAULT_WINDOWBITS;
     const serverMaxWindowBitsOption = options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS];
     if (typeof(serverMaxWindowBitsOption) !== PerMessageDeflateExtension.__BOOLEAN) {
-      serverMaxWindowBits = servertMaxWindowBitsOption;
+      serverMaxWindowBits = serverMaxWindowBitsOption;
     }
 
     this.clientMaxWindowBits = clientMaxWindowBits;
@@ -193,6 +193,7 @@ class PerMessageDeflateExtension extends ProtocolExtension {
           this.__rawDeflate.frame.rsv2,
           this.__rawDeflate.frame.rsv3,
           this.__rawDeflate.frame.opcode,
+          null,
           this.__rawDeflate.frame.isFin,
         )
         this.__rawDeflate.resolve(deflatedFrame);
@@ -249,6 +250,7 @@ class PerMessageDeflateExtension extends ProtocolExtension {
             this.__rawInflate.frame.rsv2,
             this.__rawInflate.frame.rsv3,
             this.__rawInflate.frame.opcode,
+            null,
             this.__rawInflate.frame.isFin,
           )
           this.__rawInflate.resolve(inflatedFrame);

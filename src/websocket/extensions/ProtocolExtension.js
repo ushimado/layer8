@@ -69,7 +69,7 @@ class ProtocolExtension {
       return this.name;
     }
 
-    return `${this.name} ${serOptions}`;
+    return `${this.name}; ${serOptions}`;
   }
 
   /**

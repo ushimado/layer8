@@ -1,7 +1,7 @@
 {
-  "name": "simpleserver",
+  "name": "testclient",
   "version": "1.0.0",
-  "description": "Simple server using layer8",
+  "description": "Simple websocket client example using layer8",
   "main": "./src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,7 +9,6 @@
   "author": "Philip Stefou",
   "license": "GPL",
   "dependencies": {
-    "koa-body": "^4.2.0",
     "layer8": "file:../../.."
   }
 }

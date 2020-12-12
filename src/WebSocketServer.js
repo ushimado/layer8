@@ -58,6 +58,7 @@ class WebSocketServer {
     }
 
     this.idCounter = 0;
+    this.__isListening = false;
   }
 
   /**
@@ -76,17 +77,17 @@ class WebSocketServer {
     try {
       request = Request.parse(data);
 
-      const securityKeyHeader = request.headers.get(WebSocketServer.SEC_WEBSOCKET_KEY);
+      const securityKeyHeader = request.headers.get(WebSocket.SEC_WEBSOCKET_KEY);
       if (securityKeyHeader === undefined) {
         throw new Error("No security header present");
       }
 
       const securityKey = securityKeyHeader.value;
       const shasum = crypto.createHash('sha1');
-      shasum.update(`${securityKey}${WebSocketServer.GUID}`);
+      shasum.update(`${securityKey}${WebSocket.GUID}`);
       acceptKey = shasum.digest('base64');
 
-      const extensionHeader = request.headers.get(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS);
+      const extensionHeader = request.headers.get(WebSocket.SEC_WEBSOCKET_EXTENSIONS);
       if (extensionHeader === undefined) {
         // Empty set of extensions
         extensions = new ExtensionsRequest([]);
@@ -106,7 +107,7 @@ class WebSocketServer {
       session = await messageProcessor.authenticate(authToken);
       if (session === null) {
         const response = new Response(
-          new StatusLine(WebSocketServer.PROTOCOL, HTTPStatusCodes.UNAUTHORIZED, 'Unauthorized')
+          new StatusLine(WebSocket.PROTOCOL, HTTPStatusCodes.UNAUTHORIZED, 'Unauthorized')
         );
 
         webSocket.socket.write(response.serialize());
@@ -152,15 +153,15 @@ class WebSocketServer {
     const headers = new Headers();
     headers.add(new Header('Upgrade', 'websocket'));
     headers.add(new Header('Connection', 'Upgrade'));
-    headers.add(new Header(WebSocketServer.SEC_WEBSOCKET_ACCEPT, acceptKey));
+    headers.add(new Header(WebSocket.SEC_WEBSOCKET_ACCEPT, acceptKey));
 
     const extensionHeaderValue = appliedExtensions.map(extension => extension.serialize()).join('; ');
     if (extensionHeaderValue.length > 0) {
-      headers.add(new Header(WebSocketServer.SEC_WEBSOCKET_EXTENSIONS, extensionHeaderValue));
+      headers.add(new Header(WebSocket.SEC_WEBSOCKET_EXTENSIONS, extensionHeaderValue));
     }
 
     const response = new Response(
-      new StatusLine(WebSocketServer.PROTOCOL, HTTPStatusCodes.SWITCHING_PROTOCOLS, 'SWITCHING_PROTOCOLS'),
+      new StatusLine(WebSocket.PROTOCOL, HTTPStatusCodes.SWITCHING_PROTOCOLS, 'SWITCHING_PROTOCOLS'),
       headers,
     );
 
@@ -239,7 +240,11 @@ class WebSocketServer {
    */
   _onConnection(socket) {
     const id = this.idCounter ++;
-    this.clientById[id] = new WebSocket(this, socket, id, this.verbose);
+
+    const options = {};
+    options[WebSocket.OPTION_VERBOSE] = this.verbose;
+    this.clientById[id] = new WebSocket(options);
+    this.clientById[id].bind(socket, this, id);
 
     if (this.verbose === true) {
       console.debug(`${this.clientById[id].getLogHeader()}Connected to the server`);
@@ -247,24 +252,38 @@ class WebSocketServer {
   }
 
   listen(port) {
-    const host = '0.0.0.0';
-    this.server.listen({
-      host,
-      port,
-    });
+    assert(this.__isListening === false);
+    this.__isListening = true;
+    return new Promise((resolve, reject) => {
+      const host = '0.0.0.0';
+      this.server.listen(
+        {
+          host,
+          port,
+        },
+        () => {
+          if (this.verbose === true) {
+            console.debug(`Server is listening on ${host}:${port}`);
+          }
+          resolve();
+        }
+      );
+    })
+  }
 
-    if (this.verbose === true) {
-      console.debug(`Server is listening on ${host}:${port}`);
-    }
+  async close() {
+    return new Promise((resolve, reject) => {
+      assert(this.__isListening === true);
+      this.server.close(() => {
+        if (this.verbose === true) {
+          console.debug("Server listener closed");
+        }
+        resolve();
+      });
+    })
   }
 }
 
 WebSocketServer.AUTH_TOKEN_KEY = 'auth_token';
-WebSocketServer.SEC_WEBSOCKET_KEY = 'Sec-WebSocket-Key';
-WebSocketServer.SEC_WEBSOCKET_EXTENSIONS = 'Sec-WebSocket-Extensions';
-WebSocketServer.SEC_WEBSOCKET_ACCEPT = 'Sec-WebSocket-Accept';
-
-WebSocketServer.GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
-WebSocketServer.PROTOCOL = 'HTTP/1.1';
 
 module.exports = WebSocketServer;

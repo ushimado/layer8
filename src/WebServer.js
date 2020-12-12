@@ -196,6 +196,11 @@ class WebServer {
     this.__server.listen(port);
   }
 
+  close() {
+    assert(this.__isListening === true);
+    this.server.close();
+  }
+
   /**
    * Specifies an array of middlewares to wrap every endpoint exposed by the server.
    *

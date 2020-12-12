@@ -1,6 +1,7 @@
 const assert = require('assert');
 const BitUtils = require('../utils/BitUtils');
 const ParseError = require('../errors/ParseError');
+const IncompleteFrameError = require('../errors/IncompleteFrameError');
 
 /**
  * Represents a websocket protocol frame.
@@ -8,38 +9,57 @@ const ParseError = require('../errors/ParseError');
  * @class Frame
  */
 class Frame {
-
   /**
    * Creates a Frame instance from the specified payload and options.
    *
    * @static
-   * @param {Buffer} payload
+   * @param {?Buffer} payload
    * @param {Boolean} rsv1 - Reserved bit 1
    * @param {Boolean} rsv2 - Reserved bit 2
    * @param {Boolean} rsv3 - Reserved bit 3
    * @param {Number} opcode - Operation code
+   * @param {?Buffer} mask - Mask
    * @param {Boolean} isFin - Frame represents the final data frame in a message
    * @returns
    * @memberof Frame
    */
-  static create(payload, rsv1, rsv2, rsv3, opcode, isFin) {
-    assert(payload instanceof Buffer);
+  static create(payload, rsv1, rsv2, rsv3, opcode, mask, isFin) {
+    let length;
+    let byte1 = 0;
+    let byte2 = 0;
 
-    const length = payload.length;
-    let payloadSizeBytes, payloadByte1;
-    if (length < 126) {
-      payloadByte1 = length;
-      payloadSizeBytes = 1;
-    } else if (length <= Frame.MAX_SIZE_16_BIT) {
-      payloadByte1 = 126;
-      payloadSizeBytes = 3;   // 2 plus the first one
+    if (payload instanceof Buffer) {
+      length = payload.length;
     } else {
-      payloadByte1 = 127;
-      payloadSizeBytes = 9;   // 8 plus the first one
+      assert(payload === null);
+      length = 0;
     }
 
-    const header = Buffer.alloc(payloadSizeBytes + 1);
-    let byte1 = 0;
+    if (mask !== null) {
+      // Set the mask bit
+      byte2 += 128;
+    }
+
+    let headerSizeBytes = 1;
+    if (length < 126) {
+      byte2 += length;
+      headerSizeBytes += 1;
+    } else if (length <= Frame.MAX_SIZE_16_BIT) {
+      byte2 += 126;
+      headerSizeBytes += 3;   // 2 plus the first one
+    } else {
+      byte2 += 127;
+      headerSizeBytes += 9;   // 8 plus the first one
+    }
+
+    if (mask instanceof Buffer) {
+      assert(mask.length === 4);
+      headerSizeBytes += 4;
+    } else {
+      assert(mask === null);
+    }
+
+    const header = Buffer.alloc(headerSizeBytes);
     if (isFin) {
       byte1 += 1 << Frame.FIN_BIT;
     }
@@ -59,14 +79,31 @@ class Frame {
     byte1 += opcode;
 
     header[0] = byte1;
-    header[1] = payloadByte1;
+    header[1] = byte2;
 
-    if (payloadByte1 === 126) {
+    if (mask !== null) {
+      for (let i = 0; i < mask.length; i++) {
+        header[2+i] = mask[i];
+      }
+
+      // Apply the mask
+      const length = mask.length;
+      for (let i = 0; i < payload.length; i++) {
+        payload[i] ^= mask[i % length];
+      }
+    }
+
+    if (byte2 & 126 === 126) {
       // 16 bit payload length
       BitUtils.hton(header, 2, 2, length);
-    } else if (payloadByte1 === 127) {
+    } else if (byte2 & 127 === 127) {
       // 64 bit payload length
       BitUtils.hton(header, 2, 8, length)
+    }
+
+    if (payload === null) {
+      assert(mask === null);
+      return new Frame(header);
     }
 
     return new Frame(Buffer.concat([header, payload]));
@@ -83,7 +120,7 @@ class Frame {
   constructor(buffer) {
     assert(buffer instanceof Buffer);
     if (buffer.length < 2) {
-      throw new ParseError("Frame too small");
+      throw new IncompleteFrameError();
     }
 
     const byte1 = buffer[0];
@@ -109,7 +146,7 @@ class Frame {
 
     if (firstPayloadSize === Frame.PAYLOAD_SIZE_EXT_SMALLER) {
       if (buffer.length < 4) {
-        throw new ParseError("Frame too small");
+        throw new IncompleteFrameError();
       }
       this.payloadSize = BitUtils.ntoh(buffer, 2, 2);
       // 16 bits of payload size
@@ -117,7 +154,7 @@ class Frame {
     } else if (firstPayloadSize === Frame.PAYLOAD_SIZE_EXT_LARGER) {
       // 64 bits of payload size
       if (buffer.length < 10) {
-        throw new ParseError("Frame too small");
+        throw new IncompleteFrameError();
       }
       payloadOffset += 8;
       this.payloadSize = BitUtils.ntoh(buffer, 2, 8);
@@ -125,16 +162,13 @@ class Frame {
       this.payloadSize = firstPayloadSize;
     }
 
-    this.__payload = buffer.slice(payloadOffset);
-    if (this.__payload.length !== this.payloadSize) {
-      throw new ParseError('Frame payload does not match reported payload size');
+    this.__payload = buffer.slice(payloadOffset, payloadOffset + this.payloadSize);
+    if (this.__payload.length < this.payloadSize) {
+      throw new IncompleteFrameError();
     }
 
     if (this.isMasked === true) {
       const keyLength = 4;
-      if (buffer.length - 1 < payloadOffset) {
-        throw new ParseError("Frame too small");
-      }
       const maskingKey = buffer.slice(payloadOffset-keyLength, payloadOffset);
 
       for (let i = 0; i < this.__payload.length; i++) {
@@ -144,6 +178,7 @@ class Frame {
     }
 
     this.buffer = buffer;
+    this.totalFrameSize = payloadOffset;
   }
 
   /**
@@ -180,6 +215,8 @@ Frame.MAX_SIZE_16_BIT = (1 << 16) - 1;
 Frame.OPCODE_CONTINUATION_FRAME = 0;
 Frame.OPCODE_TEXT_FRAME = 1;
 Frame.OPCODE_BINARY_FRAME = 2;
+Frame.OPCODE_PING_FRAME = 9;
+Frame.OPCODE_PONG_FRAME = 0x0A;
 
 Frame.DATA_FRAME_OPCODES = new Set([
   Frame.OPCODE_CONTINUATION_FRAME,
