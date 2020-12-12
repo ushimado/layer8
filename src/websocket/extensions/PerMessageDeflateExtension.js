@@ -255,8 +255,8 @@ class PerMessageDeflateExtension extends ProtocolExtension {
           )
           this.__rawInflate.resolve(inflatedFrame);
         });
-        this.__rawInflate.on('error', () => {
-          this.__rawInflatereject();
+        this.__rawInflate.on('error', (error) => {
+          this.__rawInflate.reject();
         });
       }
 
@@ -304,13 +304,19 @@ class PerMessageDeflateExtension extends ProtocolExtension {
       optionsList.push(PerMessageDeflateExtension.CLIENT_NO_CONTEXT_TAKEOVER_OPTION);
     }
 
-    if (typeof(options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS]) !== PerMessageDeflateExtension.__BOOLEAN) {
+    if (
+      PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS in options &&
+      typeof(options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS]) !== PerMessageDeflateExtension.__BOOLEAN
+    ) {
       optionsList.push(
         `${PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS}=${options[PerMessageDeflateExtension.SERVER_MAX_WINDOW_BITS]}`
       );
     }
 
-    if (typeof(options[PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS]) !== PerMessageDeflateExtension.__BOOLEAN) {
+    if (
+      PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS in options &&
+      typeof(options[PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS]) !== PerMessageDeflateExtension.__BOOLEAN
+    ) {
       optionsList.push(
         `${PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS}=${options[PerMessageDeflateExtension.CLIENT_MAX_WINDOW_BITS]}`
       );

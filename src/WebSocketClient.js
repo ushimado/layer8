@@ -115,7 +115,7 @@ class WebSocketClient extends WebSocket {
       assert(buffer instanceof Buffer);
     }
 
-    if (this.__isReady === false || this.__pendingWrites.length > 0) {
+    if (this.__handshakeComplete === false || this.__pendingWrites.length > 0) {
       this.__pendingWrites.push(buffer);
       return;
     }
@@ -151,6 +151,8 @@ class WebSocketClient extends WebSocket {
             this.socket.end();
             throw e;
           }
+
+          throw e;
         }
 
         await this.onConnect();
@@ -199,7 +201,7 @@ class WebSocketClient extends WebSocket {
       }
 
       const protocolExtensionInst = this.__requestedExtensionByName[extension.name];
-      negotiatedExtensions.push(protocolExtensionInst.createInstance(extension));
+      negotiatedExtensions.push(protocolExtensionInst.constructor.createInstance(extension));
     });
 
     // Verify the accept key

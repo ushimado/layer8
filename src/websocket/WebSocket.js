@@ -45,9 +45,9 @@ class WebSocket {
     this.__id = null;
     this.__verbose = options[WebSocket.OPTION_VERBOSE] === undefined ? false : options[WebSocket.OPTION_VERBOSE];
 
-    this.__handshakeComplete = false;
     this.__extensions = [];
     this.__session = null;
+    this.__request = null;
     this.__messageProcessor = null;
     this.__frameBuffer = new FrameBuffer();
     this.__requestBuffer = new RequestBuffer();
@@ -77,6 +77,10 @@ class WebSocket {
 
   set extensions(value) {
     this.__extensions = value;
+  }
+
+  get messageProcessor() {
+    return this.__messageProcessor;
   }
 
   bind(socket, webSocketServer=null, id=null) {
@@ -148,7 +152,7 @@ class WebSocket {
 
   async onData(data) {
     assert(data instanceof Buffer)
-    if (this.request === null) {
+    if (this.__request === null) {
       const request = this.requestBuffer.ingest(data);
       if (request === null) {
         if (this.verbose === true) {
@@ -159,7 +163,7 @@ class WebSocket {
           console.debug(`${this.getLogHeader()}Received complete handshake request\n${data.toString()}`)
         }
 
-        const result = await this.webSocketServer.doHandshake(this, request);
+        const result = await this.__webSocketServer.doHandshake(this, request);
         if (result !== null) {
           const [
             request,
@@ -168,11 +172,11 @@ class WebSocket {
             messageProcessor,
           ] = result;
 
-          this.request = request;
-          this.extensions = extensions;
-          this.session = session;
-          this.messageProcessor = messageProcessor;
-          this.messageProcessor._onConnect(this.session, this);
+          this.__request = request;
+          this.__extensions = extensions;
+          this.__session = session;
+          this.__messageProcessor = messageProcessor;
+          this.__messageProcessor._onConnect(this.session, this);
         }
       }
     } else {
@@ -184,7 +188,7 @@ class WebSocket {
 
       for (let message of messages) {
         try {
-          const [ modifiedData, error ] = await this.messageProcessor._onRead(
+          const [ modifiedData, error ] = await this.__messageProcessor._onRead(
             this.session, this, message
           ).then(
             resp => [ resp, null]
@@ -193,7 +197,7 @@ class WebSocket {
           );
           if (error !== null) throw error;
 
-          return this.messageProcessor.onRead(this.session, this, modifiedData);
+          return this.__messageProcessor.onRead(this.session, this, modifiedData);
         } catch(e) {
           console.debug(`${this.getLogHeader()}Received an unprocessable message, server initiating disconnect`);
           if (this.verbose === true) {
@@ -218,15 +222,16 @@ class WebSocket {
         i + this.__maxFramePayloadSize >= data.length,
       );
 
-      for (let i = this.__extensions.length - 1; i >= 0; i--) {
-        const extension = this.__extensions[i];
+      for (let e = this.__extensions.length - 1; e >= 0; e--) {
+        const extension = this.__extensions[e];
         frame = await extension.onWrite(frame);
       }
 
+      let writeData = frame.buffer;
       if (isClient === true && !this.__testForceDontMask) {
         // Client in testing mode can optionally turn off masking to test servers
         const mask = crypto.randomBytes(4);
-        frame = Frame.create(
+        writeData = Frame.create(
           frame.payload,
           frame.rsv1,
           frame.rsv2,
@@ -240,11 +245,11 @@ class WebSocket {
       try {
         if (this.__testSendFragmentedFrame === true) {
           const percent = Math.random();
-          const index = Math.max(1, Math.min(Math.round(frame.buffer.length * percent), frame.buffer.length - 1));
-          this.__socket.write(frame.buffer, 0, index);
-          this.__socket.write(frame.buffer, index);
+          const index = Math.max(1, Math.min(Math.round(writeData.length * percent), writeData.length - 1));
+          this.__socket.write(writeData, 0, index);
+          this.__socket.write(writeData, index);
         } else {
-          this.__socket.write(frame.buffer);
+          this.__socket.write(writeData);
         }
       } catch(e) {
         if (e.code !== 'ERR_STREAM_WRITE_AFTER_END') {
@@ -262,14 +267,19 @@ class WebSocket {
     if (this.verbose === true) {
       console.debug(`${this.getLogHeader()}Connection closed`)
     }
-    this.webSocketServer.cleanup(this);
+    this.__webSocketServer.cleanup(this);
 
     // Only fire the message processor if the initial request had completed successfully.  Any
     // disconnect during handshake etc, won't cause the message processor onDisconnect to fire
     // since the onConnect would never have fired.
-    if (this.request !== null) {
-      this.messageProcessor._onDisconnect(this.session, this);
+    if (this.__request !== null) {
+      this.__messageProcessor._onDisconnect(this.session, this);
     }
+  }
+
+  close() {
+    // ToDo: Send a proper control code
+    this.__socket.end();
   }
 
   getLogHeader() {

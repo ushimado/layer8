@@ -52,8 +52,10 @@ class Frame {
       headerSizeBytes += 9;   // 8 plus the first one
     }
 
+    let maskOffset = null;
     if (mask instanceof Buffer) {
       assert(mask.length === 4);
+      maskOffset = headerSizeBytes;
       headerSizeBytes += 4;
     } else {
       assert(mask === null);
@@ -83,20 +85,20 @@ class Frame {
 
     if (mask !== null) {
       for (let i = 0; i < mask.length; i++) {
-        header[2+i] = mask[i];
+        header[maskOffset+i] = mask[i];
       }
 
       // Apply the mask
-      const length = mask.length;
+      const l = mask.length;
       for (let i = 0; i < payload.length; i++) {
-        payload[i] ^= mask[i % length];
+        payload[i] ^= mask[i % l];
       }
     }
 
-    if (byte2 & 126 === 126) {
+    if ((byte2 & 126) === 126) {
       // 16 bit payload length
       BitUtils.hton(header, 2, 2, length);
-    } else if (byte2 & 127 === 127) {
+    } else if ((byte2 & 127) === 127) {
       // 64 bit payload length
       BitUtils.hton(header, 2, 8, length)
     }
@@ -106,7 +108,11 @@ class Frame {
       return new Frame(header);
     }
 
-    return new Frame(Buffer.concat([header, payload]));
+    if (mask === null) {
+      return new Frame(Buffer.concat([header, payload]));
+    }
+
+    return Buffer.concat([header, payload]);
   }
 
   /**
