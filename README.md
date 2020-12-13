@@ -572,3 +572,5 @@ Authentication is handled using the `async authenticate(token)` method.  The cli
 
 ## Protocol extensions
 At present, Layer8 only ships with `PerMessageDeflateExtension` which is used to support the `per_message_deflate` extension, enabling frame compression.  Additional extensions can be authored by the developer by subclassing the `ProtocolExtension` class.
+
+It is **highly** recommended not to enable the `PerMessageDeflateExtension` due to its impact on performance.  It is CPU intensive and greatly reduces server throughput capacity.

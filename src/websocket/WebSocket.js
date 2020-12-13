@@ -4,7 +4,6 @@ const FrameBuffer = require('./FrameBuffer');
 const RequestBuffer = require('./RequestBuffer');
 const DataBuffer = require('./DataBuffer');
 const crypto = require('crypto');
-const { resolve } = require('path');
 
 class WebSocket {
 
@@ -32,8 +31,6 @@ class WebSocket {
   static TLS_PROTO = 'wss:';
   static HTTP_PROTOCOL = 'HTTP/1.1';
   static WEBSOCKET_VERSION = 13;
-
-  static bytesRead = 0;
 
   /**
    * Creates an instance of WebSocket.
@@ -183,11 +180,8 @@ class WebSocket {
         }
       }
     } else {
-      if (this.__id !== null) {
-        // Server side input, count it.
-        WebSocket.bytesRead += data.length;
-      }
       const [ messages, controlFrames ] = await this.processIncomingData(data);
+
       if (controlFrames.length > 0) {
         this.processControlFrames(controlFrames);
       }
@@ -204,7 +198,7 @@ class WebSocket {
 
           if (error !== null) throw error;
 
-          return this.__messageProcessor.onRead(this.session, this, modifiedData);
+          await this.__messageProcessor.onRead(this.session, this, modifiedData);
         } catch(e) {
           console.debug(`${this.getLogHeader()}Received an unprocessable message, server initiating disconnect`);
           if (this.verbose === true) {
@@ -256,7 +250,7 @@ class WebSocket {
           this.__socket.write(writeData, 0, index);
           this.__socket.write(writeData, index);
         } else {
-          const result = this.__socket.write(writeData);
+          this.__socket.write(writeData);
         }
       } catch(e) {
         if (e.code !== 'ERR_STREAM_WRITE_AFTER_END') {

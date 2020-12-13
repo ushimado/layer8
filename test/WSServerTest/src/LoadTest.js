@@ -17,7 +17,6 @@ class LoadTest {
     this.startTime = null;
     this.timer = null;
     this.onDone = null;
-    this.bytesSent = 0;
   }
 
   run() {
@@ -42,10 +41,14 @@ class LoadTest {
       client.connect('ws://localhost:9999/echo');
       this.clients.push(client);
     }
-    console.log(`All clients connected, writing for ${this.duration} seconds`);
-
     this.startTime = new Date().getTime();
-    this.timer = setInterval(() => this.onTimer(), LoadTest.TIMER_INTERVAL);
+    setTimeout(
+      () => {
+        console.log("Beginning to write")
+        this.timer = setInterval(() => this.onTimer(), LoadTest.TIMER_INTERVAL);
+      },
+      1000
+    );
   }
 
   onTimer() {
@@ -65,7 +68,6 @@ class LoadTest {
 
         const text = "hello world";
         client.write(Buffer.from(text))
-        this.bytesSent += text.length + 6;
 
         messagesSent ++;
       }

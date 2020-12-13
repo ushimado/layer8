@@ -6,7 +6,6 @@ const Endpoint = require('./Endpoint');
 const Headers = require('./websocket/Headers');
 const Header = require('./websocket/Header');
 const crypto = require('crypto');
-const PerMessageDeflateExtension = require('./websocket/extensions/PerMessageDeflateExtension');
 const net = require('net');
 const tls = require('tls');
 const ExtensionsRequest = require('./websocket/ExtensionsRequest');
@@ -26,7 +25,7 @@ class WebSocketClient extends WebSocket {
 
     let extensions = options[WebSocket.OPTION_EXTENSIONS];
     if (extensions === undefined) {
-      extensions = [new PerMessageDeflateExtension({})];
+      extensions = [];
     }
 
     this.__requestedExtensions = extensions;
@@ -44,8 +43,6 @@ class WebSocketClient extends WebSocket {
     this.__isReady = false;
     this.__handshakeComplete = false;
     this.__maxFramePayloadSize = options[WebSocket.OPTION_MAX_FRAME_PAYLOAD_SIZE] === undefined ? WebSocket.DEFAULT_MAX_FRAME_PAYLOAD_SIZE : options[WebSocket.OPTION_MAX_FRAME_PAYLOAD_SIZE];
-
-    this.__pendingWrites = [];
 
     this.bind(socket);
     this.setSocketHandlers(socket);
@@ -115,11 +112,6 @@ class WebSocketClient extends WebSocket {
       assert(buffer instanceof Buffer);
     }
 
-    if (this.__handshakeComplete === false || this.__pendingWrites.length > 0) {
-      this.__pendingWrites.push(buffer);
-      return;
-    }
-
     return super.write(buffer, true);
   }
 
@@ -156,11 +148,6 @@ class WebSocketClient extends WebSocket {
         }
 
         await this.onConnect();
-
-        for (let message of this.__pendingWrites) {
-          await super.write(message, true);
-        }
-        this.__pendingWrites = [];
       }
     } else {
       const [ messages, controlFrames ] = await this.processIncomingData(data);

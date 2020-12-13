@@ -1,15 +1,15 @@
 const WebSocketClient = require('../../../src/WebSocketClient');
-const WebSocket = require('../../../src/websocket/WebSocket');
 
 class WebSocketEchoClient extends WebSocketClient {
 
+  static counter = 0;
+
   constructor() {
-    const options = {};
-    options[WebSocket.OPTION_EXTENSIONS] = [];
-    super(options);
+    super();
 
     this.sent = 0;
     this.received = 0;
+    this.myId = ++WebSocketEchoClient.counter;
   }
 
   async write(buffer) {
@@ -21,6 +21,10 @@ class WebSocketEchoClient extends WebSocketClient {
   async onData(data) {
 
     this.received ++;
+  }
+
+  async onConnect() {
+    console.log(`${this.myId} Connected`);
   }
 
 }
