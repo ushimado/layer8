@@ -95,12 +95,12 @@ class Frame {
       }
     }
 
-    if ((byte2 & 126) === 126) {
-      // 16 bit payload length
-      BitUtils.hton(header, 2, 2, length);
-    } else if ((byte2 & 127) === 127) {
+    if ((byte2 & 127) === 127) {
       // 64 bit payload length
       BitUtils.hton(header, 2, 8, length)
+    } else if ((byte2 & 126) === 126) {
+      // 16 bit payload length
+      BitUtils.hton(header, 2, 2, length);
     }
 
     if (payload === null) {
@@ -183,8 +183,14 @@ class Frame {
       }
     }
 
-    this.buffer = buffer;
-    this.totalFrameSize = payloadOffset;
+    const totalFrameSize = payloadOffset + this.__payload.length;
+    if (buffer.length > totalFrameSize) {
+      this.buffer = buffer.slice(totalFrameSize);
+    } else {
+      assert(buffer.length === totalFrameSize);
+      this.buffer = buffer;
+    }
+    this.totalFrameSize = totalFrameSize;
   }
 
   /**

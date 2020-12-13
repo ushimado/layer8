@@ -1,4 +1,5 @@
 const WebSocketEchoClient = require('./WebSocketEchoClient');
+const sleep = require('./Sleep');
 
 class LoadTest {
 
@@ -16,11 +17,18 @@ class LoadTest {
     this.startTime = null;
     this.timer = null;
     this.onDone = null;
+    this.bytesSent = 0;
   }
 
   run() {
     return new Promise((resolve, reject) => {
-      this.start(() => {
+      this.start(async () => {
+        console.log("Waiting 3 seconds for inbound data to finalize");
+        await sleep(3);
+
+        for (let client of this.clients) {
+          await client.close();
+        }
         resolve();
       })
     })
@@ -55,15 +63,13 @@ class LoadTest {
           return;
         }
 
-        client.write(Buffer.from('hello world'))
+        const text = "hello world";
+        client.write(Buffer.from(text))
+        this.bytesSent += text.length + 6;
 
         messagesSent ++;
       }
     }
-  }
-
-  disconnect() {
-    this.clients.forEach(client => client.close());
   }
 
   reportStats() {
@@ -76,6 +82,10 @@ class LoadTest {
 
     console.log(`Total messages sent ${sent}`);
     console.log(`Total messages received ${received}`);
+    console.log(`Avg. transfer ${(sent / this.duration).toFixed(2)} per second`);
+    if (sent !== received) {
+      console.error("Sent did not equal received, loss must be investigated!")
+    }
   }
 
 }

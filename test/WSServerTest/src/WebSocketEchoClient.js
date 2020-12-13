@@ -19,6 +19,7 @@ class WebSocketEchoClient extends WebSocketClient {
   }
 
   async onData(data) {
+
     this.received ++;
   }
 

@@ -1,4 +1,5 @@
 const BitUtils = require('../src/utils/BitUtils');
+const assert = require('assert');
 
 describe("Test bit utils", () => {
 
@@ -16,6 +17,24 @@ describe("Test bit utils", () => {
     for (let i = 0; i < bytes; i++) {
       assert(bytes[i] === buffer[0]);
     }
+  });
+
+  it('Host to network for large number of bytes', () => {
+    const x = 8321384;
+    const buffer = new Buffer.alloc(8);
+    BitUtils.hton(buffer, 0, 8, x);
+    assert(BitUtils.ntoh(buffer, 0, 8) === x);
+  })
+
+  it('Network to host must match test criterion', () => {
+    const buffer = Buffer.alloc(2);
+    const byte1 = 12;
+    const byte2 = 221;
+    buffer[0] = byte1;
+    buffer[1] = byte2;
+
+    const total = (byte1 << 8) + byte2;
+    assert(BitUtils.ntoh(buffer, 0, 2) === total);
   });
 
 });

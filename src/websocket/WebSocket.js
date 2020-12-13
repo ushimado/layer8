@@ -4,6 +4,7 @@ const FrameBuffer = require('./FrameBuffer');
 const RequestBuffer = require('./RequestBuffer');
 const DataBuffer = require('./DataBuffer');
 const crypto = require('crypto');
+const { resolve } = require('path');
 
 class WebSocket {
 
@@ -31,6 +32,8 @@ class WebSocket {
   static TLS_PROTO = 'wss:';
   static HTTP_PROTOCOL = 'HTTP/1.1';
   static WEBSOCKET_VERSION = 13;
+
+  static bytesRead = 0;
 
   /**
    * Creates an instance of WebSocket.
@@ -151,7 +154,7 @@ class WebSocket {
   }
 
   async onData(data) {
-    assert(data instanceof Buffer)
+    assert(data instanceof Buffer);
     if (this.__request === null) {
       const request = this.requestBuffer.ingest(data);
       if (request === null) {
@@ -180,8 +183,11 @@ class WebSocket {
         }
       }
     } else {
+      if (this.__id !== null) {
+        // Server side input, count it.
+        WebSocket.bytesRead += data.length;
+      }
       const [ messages, controlFrames ] = await this.processIncomingData(data);
-
       if (controlFrames.length > 0) {
         this.processControlFrames(controlFrames);
       }
@@ -195,6 +201,7 @@ class WebSocket {
           ).catch(
             e => [ null, e]
           );
+
           if (error !== null) throw error;
 
           return this.__messageProcessor.onRead(this.session, this, modifiedData);
@@ -249,7 +256,7 @@ class WebSocket {
           this.__socket.write(writeData, 0, index);
           this.__socket.write(writeData, index);
         } else {
-          this.__socket.write(writeData);
+          const result = this.__socket.write(writeData);
         }
       } catch(e) {
         if (e.code !== 'ERR_STREAM_WRITE_AFTER_END') {
@@ -277,9 +284,16 @@ class WebSocket {
     }
   }
 
-  close() {
+  async close() {
     // ToDo: Send a proper control code
-    this.__socket.end();
+    return new Promise((resolve, reject) => {
+      this.__socket.end(() => {
+        if (this.__verbose === true) {
+          console.debug("Connection closed");
+        }
+        resolve();
+      });
+    })
   }
 
   getLogHeader() {

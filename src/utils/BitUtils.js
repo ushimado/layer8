@@ -47,8 +47,23 @@ class BitUtils {
 
   static hton(buffer, offset, bytes, value) {
     for (let b = 0; b < bytes; b++) {
-      buffer[offset + b] = value & (0xFF << ((bytes - b - 1) * 8))
+      const shift = (bytes - b - 1) * 8;
+      // Can't use bitwise shifts due to Javascript's size limitations
+      const test = 0xFF * (2 ** shift);
+      const reduced = (value & test) / (2 ** shift);
+      buffer[offset + b] = reduced
     }
+  }
+
+  static getBits(value) {
+    let bit = 1;
+    const bits = [];
+    while (bit <= value) {
+      bits.unshift((value & bit) === bit);
+      bit *= 2;
+    }
+
+    return bits.map(bit => (bit === true ? '1' : '0')).join('');
   }
 }
 

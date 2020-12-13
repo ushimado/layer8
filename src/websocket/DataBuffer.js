@@ -1,5 +1,6 @@
 const Frame = require('./Frame');
 const IncompleteFrame = require('../errors/IncompleteFrameError');
+const assert = require('assert');
 
 class DataBuffer {
 
@@ -23,14 +24,15 @@ class DataBuffer {
 
   getFrames() {
     const frames = [];
-    let consumed = 0;
-    while(consumed < this.__buffer.length) {
+    while(this.__buffer !== null) {
       try {
         const frame = new Frame(this.__buffer);
         frames.push(frame);
-        consumed += frame.totalFrameSize;
-        if (this.__buffer.length > consumed) {
-          this.__buffer = this.__buffer.slice(consumed);
+        if (this.__buffer.length > frame.totalFrameSize) {
+          this.__buffer = this.__buffer.slice(frame.totalFrameSize);
+        } else {
+          assert(frame.totalFrameSize === this.__buffer.length);
+          this.__buffer = null;
         }
       } catch(e) {
         if (e instanceof IncompleteFrame) {
@@ -39,9 +41,6 @@ class DataBuffer {
       }
     }
 
-    if (this.__buffer.length === 0) {
-      this.__buffer = null;
-    }
     return frames;
   }
 }
