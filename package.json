@@ -1,6 +1,6 @@
 {
   "name": "layer8",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "An organized framework for web and websocket services, putting consistency and data validation first.",
   "main": "./src/index.js",
   "scripts": {
