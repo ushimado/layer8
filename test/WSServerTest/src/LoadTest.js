@@ -1,5 +1,6 @@
 const WebSocketEchoClient = require('./WebSocketEchoClient');
 const sleep = require('./Sleep');
+const assert = require('assert');
 
 class LoadTest {
 
@@ -67,7 +68,8 @@ class LoadTest {
         }
 
         const text = "hello world";
-        client.write(Buffer.from(text))
+        const nBytes = Math.ceil(Math.random() * 15000);
+        client.write(Buffer.alloc(nBytes, "hello"));
 
         messagesSent ++;
       }
@@ -88,6 +90,7 @@ class LoadTest {
     if (sent !== received) {
       console.error("Sent did not equal received, loss must be investigated!")
     }
+    assert(sent === received);
   }
 
 }

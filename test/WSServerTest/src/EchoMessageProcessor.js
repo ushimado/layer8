@@ -5,8 +5,6 @@ class EchoMessageProcessor extends MessageProcessor {
 
   constructor() {
     super('/echo');
-
-    this.received = 0;
   }
 
   async onConnect(session, socket) {
@@ -19,8 +17,7 @@ class EchoMessageProcessor extends MessageProcessor {
     assert(data instanceof Buffer);
 
     // Echo back the original message
-    this.received ++;
-    socket.write(data);
+    await socket.write(data);
   }
 
 }

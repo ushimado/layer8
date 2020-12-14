@@ -29,7 +29,16 @@ const appServer = new Server([
 appServer.listen(8888);
 ```
 
-The basic server setup is very minimal.  The first argument is an array of controller instances.  Each controller defines its own routing.  In a more complex setup below, we can see how method execution can be wrapped in a transaction block.
+The basic server setup is very minimal.  This is the server contructor:
+
+```
+constructor(controllers, options=null)
+```
+`options` takes a mapping of options (or null for defaults only).  Options which are not specified
+in the mapping will be defaulted.  The available options are:
+- `verbose`: Enable verbose debug logging (boolean, default false)
+
+The first argument is an array of controller instances.  Each controller defines its own routing.  In a more complex setup below, we can see how method execution can be wrapped in a transaction block.
 
 ```
 const { Server } = require('layer8');
@@ -307,14 +316,15 @@ The websocket server is designed to be flexible and support multiple endpoints. 
 ```
 const { WebSocketServer } = require('layer8');
 
+const options = {
+  verbose: true,
+}
+
 const webSocketServer = new WebSocketServer(
   [
     new MovementMessageProcessor(Move),
   ],
-  [
-    PerMessageDeflateExtension,
-  ],
-  true,
+  options,
 );
 webSocketServer.listen(9999);
 ```
@@ -322,14 +332,18 @@ webSocketServer.listen(9999);
 Let's break down the invocation above:
 
 ```
-constructor(messageProcessors, protocolExtensions=null, verbose=false)
+constructor(messageProcessors, options)
 ```
 
 Message processors can be though of as similar to controllers.  They service a given endpoint and expose a standard interface for bidirectional communication.  We'll get more into the specifics of message processors below.
 
-Protocol extensions are extensions to the websocket protocol which behave as middleware, operating at the websocket frame level, potentially bidirectionally.  In this example we've added the `PerMessageDeflateExtension` which allows for compression and decompression of websocket frames (supported by default by most web browsers).  Supplying this extension will allow the server to use it, if it is requested by the client, but only if the client also supports it.  Extensions work on an agreement basis, meaning that both sides must support the extension in order for it to be used.
-
-The `verbose` flag is useful for debugging in that it will generate a lot of useful debug log messages.
+`options` are a mapping of options that can be passed to the server.  They are as folows:
+- `verbose`: Enables verbose server/socket output, useful for debugging (boolean)
+- `extensions`: An array of protocol extension classes (for example `[PerMessageDeflateExtension]`) (Array)
+- `handshakeTimeout`: Timeout where sockets that fail to complete the websocket handshake are dropped (integer milliseconds, default 3000)
+- `requestBufferMaxSize`: The maximum size of an HTTP request including headers (integer, default 10240 bytes)
+- `frameBufferMaxSize`: The maximum amount of frame data which will be buffered, including the fin frame.  (integer, default 65536 bytes)
+- `readBufferMaxSize`: The maximum amount of fragmented frame data which will be buffered.  Fragmented, means, a partial frame, not a continuation frame.  A frame that has actually been split across multiple TCP packets. (integer, default 65536 bytes)
 
 After construction, we invoke the `listen` method on the server, which binds to a given port (in this case `9999`) and listens for incoming connections.
 

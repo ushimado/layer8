@@ -16,12 +16,17 @@ class WebSocket {
   static PROTOCOL = 'HTTP/1.1';
 
   static DEFAULT_MAX_FRAME_PAYLOAD_SIZE = 1024 * 64;
+  static DEFAULT_HANDSHAKE_TIMEOUT = 1000 * 3;
 
   static OPTION_VERBOSE = 'verbose';
   static OPTION_MAX_FRAME_PAYLOAD_SIZE = 'maxFramePayloadSize';
   static OPTION_EXTENSIONS = 'extensions';
   static OPTION_TEST_FORCE_DONT_MASK = 'testDontForceMask';
   static OPTION_TEST_SEND_FRAGMENTED_FRAME = 'testSendFragmentedFrame';
+  static OPTION_HANDSHAKE_TIMEOUT = 'handshakeTimeout';
+  static OPTION_FRAMEBUFFER_MAX_SIZE = 'frameBufferMaxSize';
+  static OPTION_REQUEST_MAX_SIZE = 'requestBufferMaxSize';
+  static OPTION_READ_BUFFER_MAX_SIZE = 'readBufferMaxSize';
 
   static WS_PROTOCOLS = {
     'ws:': 80,
@@ -43,20 +48,48 @@ class WebSocket {
     }
 
     this.__id = null;
-    this.__verbose = options[WebSocket.OPTION_VERBOSE] === undefined ? false : options[WebSocket.OPTION_VERBOSE];
+    this.__verbose = options[
+      WebSocket.OPTION_VERBOSE
+    ] === undefined ? false : options[WebSocket.OPTION_VERBOSE];
+
+    this.__handshakeTimeout = options[
+      WebSocket.OPTION_HANDSHAKE_TIMEOUT
+    ] === undefined ? WebSocket.DEFAULT_HANDSHAKE_TIMEOUT : options[
+      WebSocket.OPTION_HANDSHAKE_TIMEOUT
+    ];
+
+    const frameBufferMaxSize = options[
+      WebSocket.OPTION_FRAMEBUFFER_MAX_SIZE
+    ] === undefined ? FrameBuffer.DEFAULT_MAX_LENGTH : options[
+      WebSocket.OPTION_FRAMEBUFFER_MAX_SIZE
+    ];
+
+    const requestBufferMaxSize = options[
+      WebSocket.OPTION_REQUEST_MAX_SIZE
+    ] === undefined ? RequestBuffer.DEFAULT_MAX_LENGTH : options[
+      WebSocket.OPTION_REQUEST_MAX_SIZE
+    ];
+
+    const readBufferMaxSize = options[
+      WebSocket.OPTION_READ_BUFFER_MAX_SIZE
+    ] === undefined ? DataBuffer.MAX_SIZE : options[
+      WebSocket.OPTION_READ_BUFFER_MAX_SIZE
+    ];
 
     this.__extensions = [];
     this.__session = null;
     this.__request = null;
     this.__messageProcessor = null;
-    this.__frameBuffer = new FrameBuffer();
-    this.__requestBuffer = new RequestBuffer();
-    this.__dataBuffer = new DataBuffer();
+    this.__frameBuffer = new FrameBuffer(frameBufferMaxSize);
+    this.__requestBuffer = new RequestBuffer(requestBufferMaxSize);
+    this.__dataBuffer = new DataBuffer(readBufferMaxSize);
     this.__maxFramePayloadSize = options[WebSocket.OPTION_MAX_FRAME_PAYLOAD_SIZE] === undefined ? WebSocket.DEFAULT_MAX_FRAME_PAYLOAD_SIZE : options[WebSocket.OPTION_MAX_FRAME_PAYLOAD_SIZE];
     this.__socket = null;
 
     this.__testForceDontMask = options[WebSocket.OPTION_TEST_FORCE_DONT_MASK] === undefined ? false : options[WebSocket.OPTION_TEST_FORCE_DONT_MASK];
     this.__testSendFragmentedFrame = options[WebSocket.OPTION_TEST_SEND_FRAGMENTED_FRAME] === undefined ? false : options[WebSocket.OPTION_TEST_SEND_FRAGMENTED_FRAME];
+    this.__handshakeComplete = false;
+    this.__handshakeTimeoutFired = false;
   }
 
   get verbose() {
@@ -83,6 +116,18 @@ class WebSocket {
     return this.__messageProcessor;
   }
 
+  get handshakeComplete() {
+    return this.__handshakeComplete;
+  }
+
+  set handshakeComplete(value) {
+    this.__handshakeComplete = value;
+  }
+
+  get handshakeTimeout() {
+    return this.__handshakeTimeout;
+  }
+
   bind(socket, webSocketServer=null, id=null) {
     this.__webSocketServer = webSocketServer;
     this.__socket = socket;
@@ -91,9 +136,40 @@ class WebSocket {
     if (webSocketServer !== null) {
       socket.on('data', (data) => this.onData(data));
       socket.on('close', () => this.onClose());
+      socket.on('error', (error) => this.onError(error));
       if (this.__testSendFragmentedFrame === true) {
         socket.setNoDelay(true);
       }
+    }
+
+    if (id !== null) {
+      // Socket is already connected, created by the server to service a connection
+      setTimeout(() => this.onHandshakeTimout(), this.handshakeTimeout);
+    }
+  }
+
+  onHandshakeTimout() {
+    assert(this.__handshakeTimeoutFired === false);
+    this.__handshakeTimeoutFired = true;
+    if (this.__verbose === true) {
+      console.debug(`${this.getLogHeader()}Handshake timeout fired, checking for handshake completion`);
+    }
+    // Boot any delinquent connections
+    if (this.handshakeComplete === false) {
+      if (this.__verbose === true) {
+        console.debug(`${this.getLogHeader()}Handshake not completed, closing connection`);
+      }
+      this.__socket.end();
+    } else {
+      if (this.__verbose === true) {
+        console.debug(`${this.getLogHeader()}Handshake completed!`);
+      }
+    }
+  }
+
+  onError(error) {
+    if (error.code !== "ERR_STREAM_WRITE_AFTER_END") {
+      this.__socket.end();
     }
   }
 
@@ -138,14 +214,7 @@ class WebSocket {
           null, false, false, false, Frame.OPCODE_PONG_FRAME, null, true
         );
 
-        try {
-          this.__socket.write(pongFrame.buffer);
-        } catch(e) {
-          if (e.code !== 'ERR_STREAM_WRITE_AFTER_END') {
-            // Closing connection if error was unrelated to the connection being closed
-            this.__socket.end();
-          }
-        }
+        this.__socket.write(pongFrame.buffer);
       }
     }
   }
@@ -173,10 +242,11 @@ class WebSocket {
           ] = result;
 
           this.__request = request;
+          this.handshakeComplete = true;
           this.__extensions = extensions;
           this.__session = session;
           this.__messageProcessor = messageProcessor;
-          this.__messageProcessor._onConnect(this.session, this);
+          this.__messageProcessor._onConnect(this.__session, this);
         }
       }
     } else {
@@ -189,7 +259,7 @@ class WebSocket {
       for (let message of messages) {
         try {
           const [ modifiedData, error ] = await this.__messageProcessor._onRead(
-            this.session, this, message
+            this.__session, this, message
           ).then(
             resp => [ resp, null]
           ).catch(
@@ -198,7 +268,7 @@ class WebSocket {
 
           if (error !== null) throw error;
 
-          await this.__messageProcessor.onRead(this.session, this, modifiedData);
+          await this.__messageProcessor.onRead(this.__session, this, modifiedData);
         } catch(e) {
           console.debug(`${this.getLogHeader()}Received an unprocessable message, server initiating disconnect`);
           if (this.verbose === true) {
@@ -243,23 +313,13 @@ class WebSocket {
         );
       }
 
-      try {
-        if (this.__testSendFragmentedFrame === true) {
-          const percent = Math.random();
-          const index = Math.max(1, Math.min(Math.round(writeData.length * percent), writeData.length - 1));
-          this.__socket.write(writeData, 0, index);
-          this.__socket.write(writeData, index);
-        } else {
-          this.__socket.write(writeData);
-        }
-      } catch(e) {
-        if (e.code !== 'ERR_STREAM_WRITE_AFTER_END') {
-          // Closing connection if error was unrelated to the connection being closed
-          this.__socket.end();
-        }
-
-        // Break the loop in this event
-        return;
+      if (this.__testSendFragmentedFrame === true) {
+        const percent = Math.random();
+        const index = Math.max(1, Math.min(Math.round(writeData.length * percent), writeData.length - 1));
+        this.__socket.write(writeData, 0, index);
+        this.__socket.write(writeData, index);
+      } else {
+        this.__socket.write(writeData);
       }
     }
   }
@@ -274,7 +334,7 @@ class WebSocket {
     // disconnect during handshake etc, won't cause the message processor onDisconnect to fire
     // since the onConnect would never have fired.
     if (this.__request !== null) {
-      this.__messageProcessor._onDisconnect(this.session, this);
+      this.__messageProcessor._onDisconnect(this.__session, this);
     }
   }
 
@@ -293,6 +353,7 @@ class WebSocket {
   getLogHeader() {
     return `WebSocket:${this.id}: `;
   }
+
 }
 
 module.exports = WebSocket;

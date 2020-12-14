@@ -1,6 +1,7 @@
 const Frame = require('../src/websocket/Frame');
 const assert = require('assert');
 const crypto = require('crypto');
+const WebSocket = require('../src/websocket/WebSocket');
 
 describe("Test frame", () => {
 
@@ -75,4 +76,68 @@ describe("Test frame", () => {
     assert(frame.payload.toString() === original.toString());
   });
 
+
+  it('Should be able to process a fragmented (frame is broken up across packets) frame', async () => {
+    const testSocket = new WebSocket();
+    const testString = "hello there, this is my fragmented frame";
+    const frame = Frame.create(
+      Buffer.from(testString),
+      false,
+      false,
+      false,
+      Frame.OPCODE_TEXT_FRAME,
+      crypto.randomBytes(4),
+      true
+    );
+
+    const part1 = frame.slice(0, 5);
+    const part2 = frame.slice(5, 10);
+    const part3 = frame.slice(10);
+
+    let result;
+
+    result = await testSocket.processIncomingData(part1);
+    assert(result[0].length === 0);
+    assert(result[1].length === 0);
+
+    result = await testSocket.processIncomingData(part2);
+    assert(result[0].length === 0);
+    assert(result[1].length === 0);
+
+    const [messages, controlFrames] = await testSocket.processIncomingData(part3);
+    assert(messages.length === 1);
+    assert(controlFrames.length === 0);
+    assert(messages[0].toString() === testString);
+  });
+
+  it('Should return a first good frame if 1.5 frames exist', async () => {
+    const testSocket = new WebSocket();
+    const testString = "hello there, this is my fragmented frame";
+    const firstFrame = Frame.create(
+      Buffer.from(testString),
+      false,
+      false,
+      false,
+      Frame.OPCODE_TEXT_FRAME,
+      crypto.randomBytes(4),
+      true
+    );
+
+    const secondFrame = Frame.create(
+      Buffer.from(testString),
+      false,
+      false,
+      false,
+      Frame.OPCODE_TEXT_FRAME,
+      crypto.randomBytes(4),
+      true
+    ).slice(0, 5)
+
+    const [messages, controlFrames] = await testSocket.processIncomingData(
+      Buffer.concat([firstFrame, secondFrame])
+    );
+    assert(messages.length === 1);
+    assert(controlFrames.length === 0);
+    assert(messages[0].toString() === testString);
+  });
 });

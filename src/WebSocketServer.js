@@ -28,7 +28,61 @@ class WebSocketServer {
    * @param {Boolean} - If true, verbose debugging information will be logged for most operations
    * @memberof WebSocketServer
    */
-  constructor(messageProcessors, protocolExtensions=null, verbose=false) {
+  constructor(messageProcessors, options=null) {
+
+    if (options === null) {
+      options = {};
+    }
+
+    let protocolExtensions = null;
+    if (WebSocket.OPTION_EXTENSIONS in options) {
+      protocolExtensions = options[WebSocket.OPTION_EXTENSIONS];
+      assert(Array.isArray(protocolExtensions), "Extensions must be an array");
+    }
+
+    if (WebSocket.OPTION_VERBOSE in options) {
+      assert(typeof(options[WebSocket.OPTION_VERBOSE]) === 'boolean');
+      this.verbose = options[WebSocket.OPTION_VERBOSE];
+    } else {
+      this.verbose = false;
+    }
+
+    this.__framebufferMaxSize = null;
+    if (WebSocket.OPTION_FRAMEBUFFER_MAX_SIZE in options) {
+      this.__framebufferMaxSize = options[WebSocket.OPTION_FRAMEBUFFER_MAX_SIZE];
+      assert(
+        parseInt(this.__framebufferMaxSize) === this.__framebufferMaxSize,
+        "Framebuffer max size must be an integer"
+      );
+    }
+
+    this.__requestMaxSize = null;
+    if (WebSocket.OPTION_REQUEST_MAX_SIZE in options) {
+      this.__requestMaxSize = options[WebSocket.OPTION_REQUEST_MAX_SIZE];
+      assert(
+        parseInt(this.__requestMaxSize) === this.__requestMaxSize,
+        "Request max size must be an integer"
+      );
+    }
+
+    this.__readBufferMaxSize = null;
+    if (WebSocket.OPTION_READ_BUFFER_MAX_SIZE in options) {
+      this.__readBufferMaxSize = options[WebSocket.OPTION_READ_BUFFER_MAX_SIZE];
+      assert(
+        parseInt(this.__readBufferMaxSize) === this.__readBufferMaxSize,
+        "Read buffer max size must be an integer"
+      );
+    }
+
+    this.__handshakeTimeout = null;
+    if (WebSocket.OPTION_HANDSHAKE_TIMEOUT in options) {
+      this.__handshakeTimeout = options[WebSocket.OPTION_HANDSHAKE_TIMEOUT];
+      assert(
+        parseInt(this.__handshakeTimeout) === this.__handshakeTimeout,
+        "Handshake timeout must be an integer in milliseconds"
+      );
+    }
+
     assert(Array.isArray(messageProcessors))
 
     this.clientById = {};
@@ -36,10 +90,10 @@ class WebSocketServer {
     const server = net.createServer();
 
     server.on('connection', (socket) => this._onConnection(socket));
+    server.on('error', (error) => console.error(error));
 
     this.server = server;
     this.messageProcessors = messageProcessors;
-    this.verbose = verbose;
     this.clientIdsByMessageProcessorEndpoint = {};
 
     this.messageProcessorsByEndpoint = {};
@@ -243,6 +297,18 @@ class WebSocketServer {
 
     const options = {};
     options[WebSocket.OPTION_VERBOSE] = this.verbose;
+    if (this.__handshakeTimeout !== null) {
+      options[WebSocket.OPTION_HANDSHAKE_TIMEOUT] = this.__handshakeTimeout;
+    }
+    if (this.__framebufferMaxSize !== null) {
+      options[WebSocket.OPTION_FRAMEBUFFER_MAX_SIZE] = this.__framebufferMaxSize;
+    }
+    if (this.__requestMaxSize !== null) {
+      options[WebSocket.OPTION_REQUEST_MAX_SIZE] = this.__requestMaxSize;
+    }
+    if (this.__readBufferMaxSize !== null) {
+      options[WebSocket.OPTION_READ_BUFFER_MAX_SIZE] = this.__readBufferMaxSize;
+    }
     this.clientById[id] = new WebSocket(options);
     this.clientById[id].bind(socket, this, id);
 
@@ -271,7 +337,7 @@ class WebSocketServer {
     })
   }
 
-  async close() {
+  close() {
     return new Promise((resolve, reject) => {
       assert(this.__isListening === true);
       this.server.close(() => {

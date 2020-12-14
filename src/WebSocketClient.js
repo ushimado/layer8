@@ -41,7 +41,6 @@ class WebSocketClient extends WebSocket {
     });
 
     this.__isReady = false;
-    this.__handshakeComplete = false;
     this.__maxFramePayloadSize = options[WebSocket.OPTION_MAX_FRAME_PAYLOAD_SIZE] === undefined ? WebSocket.DEFAULT_MAX_FRAME_PAYLOAD_SIZE : options[WebSocket.OPTION_MAX_FRAME_PAYLOAD_SIZE];
 
     this.bind(socket);
@@ -76,6 +75,7 @@ class WebSocketClient extends WebSocket {
     });
     socket.on('close', (hadError) => this.onDisconnect(hadError));
     socket.on('data', (data) => this._onData(data));
+    socket.on('error', (error) => this.onError(error));
   }
 
   connect(uri) {
@@ -95,11 +95,14 @@ class WebSocketClient extends WebSocket {
 
     if (url.protocol === WebSocket.TLS_PROTO) {
       const socket = tls.connect(options, () => {
+        setTimeout(() => this.onHandshakeTimout(), this.handshakeTimeout);
       });
       this.setSocketHandlers(socket);
       this.bind(socket);
     } else {
-      this.socket.connect(options);
+      this.socket.connect(options, () => {
+        setTimeout(() => this.onHandshakeTimout(), this.handshakeTimeout);
+      });
     }
 
     this.__url = url;
@@ -125,7 +128,7 @@ class WebSocketClient extends WebSocket {
   }
 
   async _onData(data) {
-    if (this.__handshakeComplete === false) {
+    if (this.handshakeComplete === false) {
       // We expect a server handshake response here
       const request = this.requestBuffer.ingest(data);
       if (request === null) {
@@ -209,7 +212,7 @@ class WebSocketClient extends WebSocket {
     }
 
     this.extensions = negotiatedExtensions;
-    this.__handshakeComplete = true;
+    this.handshakeComplete = true;
   }
 }
 

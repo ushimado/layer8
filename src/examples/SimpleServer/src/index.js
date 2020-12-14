@@ -26,7 +26,9 @@ const appServer = new WebServer(
     new UserController(),
     new HobbyController(),
   ],
-  true,
+  {
+    verbose: true,
+  }
 ).onExecutionBegin(async (ctx, session) => {
   console.log(`Executing ${ctx.method} ${ctx.path}`);
 
@@ -52,9 +54,11 @@ const webSocketServer = new WebSocketServer(
   [
     new IMMessageProcessor(),
   ],
-  [
-    PerMessageDeflateExtension,
-  ],
-  true,
+  {
+    extensions: [
+      PerMessageDeflateExtension
+    ],
+    verbose: true,
+  }
 );
 webSocketServer.listen(WS_PORT);

@@ -5,6 +5,7 @@ const assert = require('assert');
 const { ValidationError } = require('ensuredata');
 const ResponseObject = require('./responseTypes/ResponseObject');
 const JSONResponse = require('./responseTypes/JSONResponse');
+const WebSocket = require('./websocket/WebSocket');
 
 class WebServer {
 
@@ -20,8 +21,18 @@ class WebServer {
    */
   constructor(
     controllers,
-    verbose=false,
+    options=null,
   ) {
+    if (options === null) {
+      options = {};
+    }
+
+    if (WebSocket.OPTION_VERBOSE in options) {
+      verbose = options[WebSocket.OPTION_VERBOSE];
+    } else {
+      verbose = false;
+    }
+
     const server = new Koa();
 
     if (verbose === true) {

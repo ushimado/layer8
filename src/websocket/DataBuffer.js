@@ -6,8 +6,9 @@ class DataBuffer {
 
   static MAX_SIZE = 128 * 1024;
 
-  constructor() {
+  constructor(maxSize=DataBuffer.MAX_SIZE) {
     this.__buffer = null;
+    this.__maxSize = maxSize;
   }
 
   ingest(buffer) {
@@ -17,7 +18,7 @@ class DataBuffer {
       this.__buffer = Buffer.concat([this.__buffer, buffer]);
     }
 
-    if (this.__buffer.length > DataBuffer.MAX_SIZE) {
+    if (this.__buffer.length > this.__maxSize) {
       throw new ParseError("Buffer limit exceeded");
     }
   }
